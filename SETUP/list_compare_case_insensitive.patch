@@ -1,0 +1,75 @@
+--- Compare.pm	2009-01-06 10:10:26.000000000 -0500
++++ Compare.pm	2009-01-06 11:02:24.000000000 -0500
+@@ -4,6 +4,7 @@
+ use strict;
+ local $^W = 1;
+ use Carp;
++use Hash::Case::Preserve;
+ use List::Compare::Base::_Auxiliary qw(
+     _validate_2_seenhashes
+     _chart_engine_regular
+@@ -11,7 +12,7 @@
+ 
+ sub new {
+     my $class = shift;
+-    my (@args, $unsorted, $accelerated, $self, $dataref, $unsortflag);
++    my (@args, $unsorted, $accelerated, $insensitive, $self, $dataref, $unsortflag, $insensitiveflag);
+     my ($argument_error_status, $nextarg, @testargs);
+     if (@_ == 1 and (ref($_[0]) eq 'HASH')) {
+         my $argref = shift;
+@@ -23,12 +24,15 @@
+         @args = @{${$argref}{'lists'}};
+         $unsorted = ${$argref}{'unsorted'} ? 1 : '';
+         $accelerated = ${$argref}{'accelerated'} ? 1 : '';
++        $insensitive = ${$argref}{'insensitive'} ? 1 : '';
+     } else {
+         @args = @_;
+         $unsorted = ($args[0] eq '-u' or $args[0] eq '--unsorted')
+             ? shift(@args) : '';
+         $accelerated = shift(@args) 
+             if ($args[0] eq '-a' or $args[0] eq '--accelerated');
++        $insensitive = shift(@args) 
++            if ($args[0] eq '-i' or $args[0] eq '--insensitive');
+     }
+     $argument_error_status = 1;
+     @testargs = @args[1..$#args];
+@@ -68,7 +72,8 @@
+     # do necessary calculations and store results in a hash
+     # take a reference to that hash
+     $unsortflag = $unsorted ? 1 : 0;
+-    $dataref = $self->_init($unsortflag, @args);
++    $insensitiveflag = $insensitive ? 1 : 0;
++    $dataref = $self->_init($unsortflag, $insensitiveflag, @args);
+ 
+     # initialize the object from the prepared values (Damian, p. 98)
+     %$self = %$dataref;
+@@ -77,7 +82,7 @@
+ 
+ sub _init {
+     my $self = shift;
+-    my ($unsortflag, $refL, $refR) = @_;
++    my ($unsortflag, $insensitiveflag, $refL, $refR) = @_;
+     my (%data, @left, @right,  %seenL, %seenR);
+     if (ref($refL) eq 'HASH') {
+         my ($seenLref, $seenRref) =  _validate_2_seenhashes($refL, $refR);
+@@ -101,6 +106,21 @@
+     } 
+     my @bag = $unsortflag ? (@left, @right) : sort(@left, @right);
+     my (%intersection, %union, %Lonly, %Ronly, %LorRonly);
++
++    if ($insensitiveflag) {
++        my %tempL = %seenL;
++        my %tempR = %seenR;
++
++        tie %seenL, 'Hash::Case::Preserve', \%tempL, keep => 'FIRST';
++        tie %seenR, 'Hash::Case::Preserve', \%tempR, keep => 'FIRST';
++
++        tie %intersection, 'Hash::Case::Preserve', keep => 'FIRST';
++        tie %union,        'Hash::Case::Preserve', keep => 'FIRST';
++        tie %Lonly,        'Hash::Case::Preserve', keep => 'FIRST';
++        tie %Ronly,        'Hash::Case::Preserve', keep => 'FIRST';
++        tie %LorRonly,     'Hash::Case::Preserve', keep => 'FIRST';
++    }
++
+     my $LsubsetR_status = my $RsubsetL_status = 1;
+     my $LequivalentR_status = 0;

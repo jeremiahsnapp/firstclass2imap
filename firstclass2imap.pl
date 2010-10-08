@@ -1,0 +1,236 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+use POSIX qw(ceil floor);
+
+use DBI;
+
+use firstclass2imap;
+use Date::Parse;
+use Date::Manip;
+
+if (@ARGV != 1) {
+        print "Usage: ./firstclass2imap.pl <instance>\n\n";
+        print "Where <instance> is a number representing the migration account in First Class that will be used.\n\n";
+        print "Example: ./firstclass2imap.pl 1\n\n";
+
+        exit;
+}
+
+my $instance = shift(@ARGV);
+
+my $my_timeout = 3600;
+my $my_rcvdDir = "/home/migrate/ba" . $instance . "_rcvd/new/";
+my $my_sentDir = "/home/migrate/ba" . $instance . "_sent/new/";
+my $my_searchString = "BA Migrate Script " . $instance . ": ";
+my $my_migrate_user = "migrate" . $instance;
+my $my_migrate_password = "migrate" . $instance;
+my $my_max_export_script_size = 20000;
+my $my_dry_run = 0;
+my $my_debugimap = 0;
+my $force_update_all_email = 0;
+
+firstclass2imap::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap);
+
+# MySQL CONFIG VARIABLES
+my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");
+
+# PERL MYSQL CONNECT
+my($dbh) = DBI->connect("DBI:mysql:$mysqldb", $mysqluser, $mysqlpassword) or die "Couldn't connect to database: " . DBI->errstr;
+
+my $count = 0;
+
+# you can use $count to limit the number of accounts you want to migrate
+# it can be helpful during testing to limit the number to a single account
+while ($count < 1) {
+
+# when you are ready to migrate all accounts you can remove the "while" condition
+###while () {
+
+	my $starttime = time();
+	my $lasttime = $starttime;
+	my $elapsed_time = "";
+	my $elapsed_time_secs = "";
+
+	my ($switched, $fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $migrated) = 
+		(0, "", "", "", "", "", "", "", 0, 0);
+
+# this query is helpful during testing ... it limits the migration to a specific account
+	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated FROM usermap WHERE touser = 'registrar'");
+
+# this query is for when you are ready to migrate all accounts
+###	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated FROM usermap WHERE tohost = '192.168.1.26' AND broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+
+	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
+
+	$sth->bind_columns (\$switched, \$fromhost, \$fromuser, \$fromfolder, \$tohost, \$touser, \$topassword, \$tofolder, \$recursive, \$migrated);
+
+	$sth->fetchrow_hashref;
+
+###	# you can override recursive migration here
+###	$recursive = 0;
+
+	open(STDOUT, '>>', "/var/log/migration/$touser") or die "Can't redirect STDOUT: $!";
+	open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
+
+	system("find $my_rcvdDir -name '*' -type f -print0 | xargs -0 rm");
+	system("find $my_sentDir -name '*' -type f -print0 | xargs -0 rm");
+
+	$sth = $dbh->prepare ("UPDATE usermap SET migrating = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+	if ($sth->execute( $fromuser, $touser, $fromfolder, $tofolder )) {
+		my($migrated_folder_structure, $migrated_folders, $fc_folder_count, $zimbra_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids) = (0, 0, 0, 0, 0, 0);
+		my ($missed_folders_count, $missed_fcuids_count) = (0, 0);
+		my $missed_folders;
+		my $missed_fcuids;
+
+		my $delete_from_zimbra = 0;
+###		$delete_from_zimbra = 1 if (!$switched);
+
+		($migrated_folder_structure, $fc_folder_count, $zimbra_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_zimbra);
+
+		if (!$migrated_folder_structure) {
+			$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, broken = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+                        $sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
+
+			$count++;
+			next;
+		}
+
+		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_zimbra, $force_update_all_email);
+
+		if ($migrated_folder_structure && $migrated_folders) {
+			$missed_folders_count = @$missed_folders;
+			foreach my $folder (keys(%{$missed_fcuids})) {
+				foreach my $fcuid (@{$missed_fcuids->{$folder}} ) {
+					$missed_fcuids_count++;
+				}
+			}
+
+			($elapsed_time, $lasttime, $elapsed_time_secs) = elapsed_time($starttime);
+
+			$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), duration = ?, fc_folder_count = ?, zimbra_folder_count = ?, fc_fcuid_count = ?, zimbra_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+			$sth->execute( $elapsed_time_secs, $fc_folder_count, $zimbra_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder, $tofolder );
+
+			if ( ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
+				$sth = $dbh->prepare ("UPDATE usermap SET migration_complete = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+				$sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
+			}
+		}
+
+		$migrated++;
+
+		$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+		$sth->execute( $migrated, $fromuser, $touser, $fromfolder, $tofolder );
+
+		if ($migrated_folder_structure && $migrated_folders) {
+			my $from_address = 'admin@schoolname.edu';
+
+			my $to_address = 'admin@schoolname.edu';
+
+			if ( $migrated_folder_structure && $migrated_folders && ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
+				$to_address .= ',' . $touser . '@schoolname.edu';
+			}
+
+			my $subject = "";
+			if ( ($dir_account_total_fcuids == 0) && $migrated_folder_structure && $migrated_folders ) {
+				$subject = "$touser\'s Email Migration Report:    100% Successful";
+			}
+			if ($dir_account_total_fcuids != 0) {
+				$subject = "$touser\'s Email Migration Report:    " . 
+					sprintf("%d", 
+						floor(
+						    ( 
+							( ($fc_folder_count - $missed_folders_count) + ($dir_account_total_fcuids - $missed_fcuids_count) )
+							/ ($fc_folder_count + $dir_account_total_fcuids)
+						    ) 
+						    * 100
+						)
+					) . "% Successful";
+			}
+
+			my @body = ();
+
+			push(@body, "This is the Email Migration Report for your FirstClass account.\n\n");
+
+			push(@body, "Number of FirstClass Folders Migrated: " . ($fc_folder_count - $missed_folders_count) . "\n");
+			push(@body, "Number of FirstClass Items Migrated:   " . ($dir_account_total_fcuids - $missed_fcuids_count) . "\n\n");
+
+			if (($fc_folder_count - $missed_folders_count) > 1) {
+				push(@body, "You can find your migrated folders by clicking on the little arrow next to your \"Inbox\" folder.\n\n");
+			}
+
+			push(@body, pretty_print($missed_folders, $missed_fcuids));
+
+			firstclass2imap::email_user_notification($from_address, $tohost, $to_address, $subject, @body);
+		}
+	}
+	$count++;
+}
+
+sub pretty_print {
+	my($missed_folders, $missed_fcuids) = @_;
+
+	my @pretty = ();
+
+	my ($missed_folders_count, $missed_fcuids_count) = (0, 0);
+
+	if (defined($missed_folders)) { $missed_folders_count = @$missed_folders; }
+	if (defined($missed_fcuids)) {
+		foreach my $folder (keys(%{$missed_fcuids})) {
+			foreach my $fcuid (@{$missed_fcuids->{$folder}} ) {
+				$missed_fcuids_count++;
+			}
+		}
+	}
+
+	if ( ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
+		push(@pretty, "Our records indicate that all of your FirstClass folders and their content were successfully migrated to your new Zimbra account.\n\n");
+		push(@pretty, "If you have any questions please reply to this email.\n\n");
+		push(@pretty, "Thank you.\n\n");
+
+		return @pretty;
+	}
+
+	push(@pretty, "Our records indicate that the following FirstClass folders and their content were NOT successfully migrated to your new Zimbra account.\n\n");
+	push(@pretty, "If you have any questions please reply to this email.\n\n");
+	push(@pretty, "Thank you.\n\n");
+
+	push(@pretty, "\nThe following folders were not migrated:\n") if (@$missed_folders);
+	foreach my $folder (sort({ lc($a) cmp lc($b) } @$missed_folders)) {
+		push(@pretty, "\tFolder: " . $folder . "\n");
+	}
+
+	push(@pretty, "\nThe following items were NOT migrated:\n") if (keys(%{$missed_fcuids}));
+	foreach my $folder (keys(%{$missed_fcuids})) {
+		push(@pretty, "\nFolder: " . $folder . "\n");
+
+		foreach my $fcuid (sort( { $a->{'name'} cmp $b->{'name'} } @{$missed_fcuids->{$folder}} ) ) {
+			my($date, $time, $name, $subject) = ("", "", "", "");
+			($date, $time, $name, $subject) = ($fcuid->{'date'}, $fcuid->{'time'}, $fcuid->{'name'}, $fcuid->{'subject'});
+
+			my $item_string = "";
+
+			$item_string .= "   " . $date;
+			$item_string .= "   " . $time;
+			$item_string .= "    Name: "    . sprintf("%-30.30s", $name);
+			$item_string .= "    Subject: " . sprintf("%-30.30s", $subject);
+			$item_string .= "\n";
+	
+			push(@pretty, $item_string);
+		}
+	}
+	return @pretty;
+}
+sub elapsed_time {
+        my $lasttime = shift;
+        my $timenow = time();
+        my $elapsed_time = Delta_Format(DateCalc(ParseDate("epoch" . $lasttime), ParseDate("epoch" . $timenow)), , 0, "%dvd %hvh %mvm %svs");
+        my $elapsed_time_secs = Delta_Format(DateCalc(ParseDate("epoch" . $lasttime), ParseDate("epoch" . $timenow)), , 0, "%sh");
+        $lasttime = $timenow;
+        return($elapsed_time, $lasttime, $elapsed_time_secs);
+}
+
+sub print_timestamp {
+        return UnixDate(ParseDate("epoch" . time()),'%Y-%m-%d %T');
+}

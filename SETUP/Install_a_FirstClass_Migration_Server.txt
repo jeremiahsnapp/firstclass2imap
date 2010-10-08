@@ -1,0 +1,175 @@
+
+# set selinux to permissive in /etc/sysconfig/selinux
+
+
+yum install -y mysql-server php php-mysql httpd mod_ssl
+
+chkconfig mysqld on
+chkconfig httpd on
+service mysqld start
+service httpd start
+
+#secure mysql server accounts by creating passwords
+/usr/bin/mysqladmin -u root password 'new-password'
+/usr/bin/mysqladmin -u root -p -h migrate.schoolname.edu password 'new-password'
+
+#Remove anonymous accounts that have access to the "Test" database
+mysql -u root -p
+	mysql> DELETE FROM mysql.user WHERE User = '';
+	mysql> FLUSH PRIVILEGES;
+
+# append the following to /etc/sysconfig/iptables to open https port in the firewall
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 443 -j ACCEPT
+
+# restart the firewall
+service iptables restart
+
+
+# install phpmyadmin
+cd ~
+wget http://superb-east.dl.sourceforge.net/sourceforge/phpmyadmin/phpMyAdmin-2.11.9.4-english.tar.gz
+tar xzvf phpMyAdmin-2.11.9.4-english.tar.gz
+mv phpMyAdmin-2.11.9.4-english /var/www/html/phpmyadmin
+rm phpMyAdmin-2.11.9.4-english.tar.gz
+cp /var/www/html/phpmyadmin/config.sample.inc.php /var/www/html/phpmyadmin/config.inc.php
+
+# set the blowfish_secret to a random string of characters in /var/www/html/phpmyadmin/config.inc.php
+
+
+# create the "migrate" database and a "migrate" user with a password "test" that can "Select, Insert, Update, Delete" on the "migrate" database
+
+# use the usermap.sql file to create the usermap table and fields
+mysql -u root -p migrate < usermap.sql
+
+# create a place to store migration logs
+mkdir /var/log/migration
+
+# replace sendmail with postfix
+yum install -y postfix
+
+# configure postfix
+postconf -e 'inet_interfaces = all'
+postconf -e 'mynetworks = 127.0.0.0/8'
+postconf -e 'myhostname = migrate.schoolname.edu'
+postconf -e 'home_mailbox = Maildir/'
+postconf -e 'mailbox_command ='
+postconf -e 'mailbox_size_limit = 512000000'
+postconf -e 'message_size_limit = 102400000'
+
+# stop sendmail and start postfix
+chkconfig sendmail off
+chkconfig postfix on
+service sendmail stop
+service postfix start
+
+# append the following to /etc/sysconfig/iptables to open smtp port in the firewall
+-A RH-Firewall-1-INPUT -p tcp -m state --state NEW -m tcp --dport 25 -j ACCEPT
+
+# restart the firewall
+service iptables restart
+
+# update logwatch's postfix parsing script
+cd ~
+wget http://www.mikecappella.com/logwatch/release/postfix-logwatch-1.37.08.tgz
+tar xzvf postfix-logwatch-1.37.08.tgz
+cd postfix-logwatch-1.37.08
+make install-logwatch
+cd ~
+rm -r postfix-logwatch*
+
+
+# create a "migrate" user who's mailbox will be used to send and receive scripted migration emails
+useradd -s /sbin/nologin migrate
+
+# forward all email sent to "migrate@migrate.schoolname.edu" to procmail for further processing
+cat > /home/migrate/.forward <<EOF
+|/usr/bin/procmail
+EOF
+
+
+# create a .procmailrc file for the migrate user that will filter email into appropriate folders
+cat > /home/migrate/.procmailrc <<EOF
+LOGFILE=$HOME/.procmail.log
+DEFAULT=$HOME/Maildir/
+
+###Anywhere ''  '' .INBOX '' m '' on '' off ''  '' Contains
+##:0fw:
+##* .*
+##|sed -e 's/^To: .*@migrate\.schoolname\.edu,//'
+
+##Begin Filter Configuration -- Please do not edit by hand, use SquirrelMail
+#MAILDIR=\$HOME/Maildir/ # Default mail directory
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script:
+$HOME/ba-sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script:
+$HOME/ba-rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script 1:
+$HOME/ba1_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script 1:
+$HOME/ba1_rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script Usermap:
+$HOME/update_usermap_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script Usermap:
+$HOME/update_usermap_rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script switched_user:
+$HOME/switched_user_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script switched_user:
+$HOME/switched_user_rcvd/
+
+##End Filter Configuration
+EOF
+
+
+# make the necessary folders for filtered email
+mkdir /home/migrate/ba1_rcvd
+mkdir /home/migrate/ba1_sent
+mkdir /home/migrate/ba-rcvd
+mkdir /home/migrate/ba-sent
+mkdir /home/migrate/Maildir
+mkdir /home/migrate/switched_user_rcvd
+mkdir /home/migrate/switched_user_sent
+mkdir /home/migrate/update_usermap_rcvd
+mkdir /home/migrate/update_usermap_sent
+
+# set proper ownership on everything in the migrate user's home directory
+chown -R migrate:migrate /home/migrate
+
+
+# install dag wieers rpmforge yum repository information so you can get the perl modules needed for the migration script
+wget http://dag.wieers.com/rpm/packages/rpmforge-release/rpmforge-release-0.3.6-1.el5.rf.i386.rpm
+rpm -Uvh rpmforge-release-0.3.6-1.el5.rf.i386.rpm 
+rm rpmforge-release-0.3.6-1.el5.rf.i386.rpm
+
+# install perl modules needed for the migration script
+yum install -y perl-List-Compare perl-Hash-Case perl-Date-Manip perl-Email-Send perl-Object-Realize-Later perl-Mail-Box perl-Mail-IMAPClient perl-MIME-Types perl-TimeDate
+
+
+# patch the perl List::Compare module so it can do case insensitive comparisons
+# go to the directory that has the "list-compare-case-insensitive.patch" patch file
+patch -b -d /usr/lib/perl5/vendor_perl/5.8.8/List/ < list_compare_case_insensitive.patch
+
+# now you're system is ready to run the migration script
+
