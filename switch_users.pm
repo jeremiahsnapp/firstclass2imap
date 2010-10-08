@@ -24,9 +24,14 @@ my $searchString = "BA Migrate Script: ";
 my $max_export_script_size = 20000;
 my $migrate_user = "migrate";
 my $migrate_password = "migrate";
+my $migrate_email_address = 'migrate@migrate.schoolname.edu';
+my $fc_admin_email_address = 'administrator@schoolname.edu';
+my $domain = 'schoolname.edu';
+my $fc_ip_address = '192.168.1.24';
+my $migrate_ip_address = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap) = @_;
+	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_domain) = @_;
 
 	$dataDir = $my_dataDir;
 	$timeout = $my_timeout;
@@ -36,6 +41,11 @@ sub initialize {
 	$debugimap = $my_debugimap;
 	$migrate_user = $my_migrate_user;
 	$migrate_password = $my_migrate_password;
+	$migrate_email_address = $my_migrate_email_address;
+	$fc_admin_email_address = $my_fc_admin_email_address;
+	$fc_ip_address = $my_fc_ip_address;
+	$migrate_ip_address = $my_migrate_ip_address;
+	$domain = $my_domain;
 }
 
 sub switch_user_to_zimbra {
@@ -56,7 +66,7 @@ sub switch_user_to_zimbra {
         push (@ba_script_body, "SetRelative FromBase Path \"\"\n");
         push (@ba_script_body, "New Relative \"\" \"Migration Rule\" \"\" FormDoc 23047 0 0 23 23 -U+X\n");
         push (@ba_script_body, "Put Previous 8120 7 10000 8140 0 8141 0 9 \"\"\n");
-        push (@ba_script_body, "Put Previous 13810.0 7 33 13830.0 7 7 13832.0 0 \"$touser\@schoolname.edu\" 13830.1 7 3\n");
+        push (@ba_script_body, "Put Previous 13810.0 7 33 13830.0 7 7 13832.0 0 \"$touser\@$domain\" 13830.1 7 3\n");
         push (@ba_script_body, "Put Item Previous  13830 7 7\n");
         push (@ba_script_body, "Compile Relative \"\"\n");
 
@@ -101,25 +111,25 @@ sub email_to_batch_admin {
 
         if ( (!defined($content_type)) || ($content_type eq "") ) {$content_type = "Content-type: text/plain\n\n";}
 
-        my $reply_to = "From: migrate\@migrate.schoolname.edu\n";
+        my $reply_to = "From: $migrate_email_address\n";
         my $subject = "Subject: $ba_script_subject\n";
-        my $send_to = "To: administrator\@schoolname.edu\n";
+        my $send_to = "To: $fc_admin_email_address\n";
 
 	my @test = ($reply_to, $subject, $send_to, $content_type, @{$ba_script_body});
 
 	my $content = join( "", @test ) . "\n";
 
 	my $sender = Email::Send->new({mailer => 'SMTP'});
-	$sender->mailer_args([Host => '192.168.1.24']);
+	$sender->mailer_args([Host => $fc_ip_address]);
 	$sender->send($content);
 
-        $send_to = "To: migrate\@migrate.schoolname.edu\n";
+        $send_to = "To: $migrate_email_address\n";
 
 	@test = ($reply_to, $subject, $send_to, $content_type, @{$ba_script_body});
 
 	$content = join( "", @test ) . "\n";
 
-	$sender->mailer_args([Host => '192.168.1.6']);
+	$sender->mailer_args([Host => $migrate_ip_address]);
 	$sender->send($content);
 }
 

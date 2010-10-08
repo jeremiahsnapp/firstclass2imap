@@ -17,8 +17,13 @@ my $my_migrate_user = "migrate";
 my $my_migrate_password = "migrate";
 my $my_max_export_script_size = 20000;
 my $my_debugimap = 0;
+my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
+my $my_fc_admin_email_address = 'administrator@schoolname.edu';
+my $my_fc_ip_address = '192.168.1.24';
+my $my_migrate_ip_address = '192.168.1.6';
+my $my_domain = 'schoolname.edu';
 
-switch_users::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_debugimap);
+switch_users::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_domain);
 
 # MySQL CONFIG VARIABLES
 my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");

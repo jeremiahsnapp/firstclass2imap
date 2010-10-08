@@ -29,9 +29,18 @@ my $my_migrate_password = "migrate" . $instance;
 my $my_max_export_script_size = 20000;
 my $my_dry_run = 0;
 my $my_debugimap = 0;
+my $my_to_imaps = 1;
+my $my_to_authuser = 'admin';
+my $my_to_authuser_password = 'password';
+my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
+my $my_fc_admin_email_address = 'administrator@schoolname.edu';
+my $my_fc_ip_address = '192.168.1.24';
+my $my_migrate_ip_address = '192.168.1.6';
 my $force_update_all_email = 0;
+my $domain = 'schoolname.edu';
+my $migration_notification_email_address = 'admin@schoolname.edu';
 
-firstclass2imap::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap);
+firstclass2imap::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address);
 
 # MySQL CONFIG VARIABLES
 my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");
@@ -60,7 +69,7 @@ while ($count < 1) {
 	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated FROM usermap WHERE touser = 'registrar'");
 
 # this query is for when you are ready to migrate all accounts
-###	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated FROM usermap WHERE tohost = '192.168.1.26' AND broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+###	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
 
 	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
@@ -124,12 +133,12 @@ while ($count < 1) {
 		$sth->execute( $migrated, $fromuser, $touser, $fromfolder, $tofolder );
 
 		if ($migrated_folder_structure && $migrated_folders) {
-			my $from_address = 'admin@schoolname.edu';
+			my $from_address = "$migration_notification_email_address";
 
-			my $to_address = 'admin@schoolname.edu';
+			my $to_address = "$migration_notification_email_address";
 
 			if ( $migrated_folder_structure && $migrated_folders && ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
-				$to_address .= ',' . $touser . '@schoolname.edu';
+				$to_address .= ',' . $touser . '@' . $domain;
 			}
 
 			my $subject = "";

@@ -18,15 +18,22 @@ use Date::Manip;
 
 my $dry_run = 0;
 my $debugimap = 0;
+my $to_imaps = 1;
+my $to_authuser = 'admin';
+my $to_authuser_password = 'password';
 my $dataDir = "/home/migrate/ba-rcvd/new/";
 my $timeout = 300;
 my $searchString = "BA Migrate Script: ";
 my $max_export_script_size = 20000;
 my $migrate_user = "migrate";
 my $migrate_password = "migrate";
+my $migrate_email_address = 'migrate@migrate.schoolname.edu';
+my $fc_admin_email_address = 'administrator@schoolname.edu';
+my $fc_ip_address = '192.168.1.24';
+my $migrate_ip_address = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap) = @_;
+	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address) = @_;
 
 	$dataDir = $my_dataDir;
 	$timeout = $my_timeout;
@@ -34,8 +41,15 @@ sub initialize {
 	$max_export_script_size = $my_max_export_script_size;
 	$dry_run = $my_dry_run;
 	$debugimap = $my_debugimap;
+	$to_imaps = $my_to_imaps;
+	$to_authuser = $my_to_authuser;
+	$to_authuser_password = $my_to_authuser_password;
 	$migrate_user = $my_migrate_user;
 	$migrate_password = $my_migrate_password;
+	$migrate_email_address = $my_migrate_email_address;
+	$fc_admin_email_address = $my_fc_admin_email_address;
+	$fc_ip_address = $my_fc_ip_address;
+	$migrate_ip_address = $my_migrate_ip_address;
 }
 
 sub migrate_folder_structure {
@@ -1084,25 +1098,25 @@ sub email_to_batch_admin {
 
         if ( (!defined($content_type)) || ($content_type eq "") ) {$content_type = "Content-type: text/plain\n\n";}
 
-        my $reply_to = "From: migrate\@migrate.schoolname.edu\n";
+        my $reply_to = "From: $migrate_email_address\n";
         my $subject = "Subject: $ba_script_subject\n";
-        my $send_to = "To: administrator\@schoolname.edu\n";
+        my $send_to = "To: $fc_admin_email_address\n";
 
 	my @test = ($reply_to, $subject, $send_to, $content_type, @{$ba_script_body});
 
 	my $content = join( "", @test ) . "\n";
 
 	my $sender = Email::Send->new({mailer => 'SMTP'});
-	$sender->mailer_args([Host => '192.168.1.24']);
+	$sender->mailer_args([Host => $fc_ip_address]);
 	$sender->send($content);
 
-        $send_to = "To: migrate\@migrate.schoolname.edu\n";
+        $send_to = "To: $migrate_email_address\n";
 
 	@test = ($reply_to, $subject, $send_to, $content_type, @{$ba_script_body});
 
 	$content = join( "", @test ) . "\n";
 
-	$sender->mailer_args([Host => '192.168.1.6']);
+	$sender->mailer_args([Host => $migrate_ip_address]);
 	$sender->send($content);
 }
 
@@ -1195,27 +1209,24 @@ sub create_imap_client {
 
         my $imap;
 
-        my $ssl = 0;
         my $port = "143";
         my $authuser = $user;
         my $authmech = "PLAIN";
 
 # if the imap server is the firstclass server then use CRAM-MD5
-        if ($host eq "192.168.1.24") {
+        if ($host eq $fc_ip_address) {
                 $authmech = "CRAM-MD5";
         }
 
-# if the imap server is the zimbra server then use ssl and an admin account for access
-        if ($host eq "192.168.1.26") {
-                $port = "993";
-                $ssl = 1;
-
-# set $authuser and $password to a zimbra account with admin rights
-                $authuser = "?????";
-                $password = "?????";
+# if the imap server allows for admin access to user accounts then set $authuser and $password to an imap account with admin rights
+        if ($to_authuser && $to_authuser_password) {
+                $authuser = $to_authuser;
+                $password = $to_authuser_password;
         }
 
-        if ($ssl) {
+        if ($to_imaps) {
+                $port = "993";
+
                 require IO::Socket::SSL;
                 my $socssl = new IO::Socket::SSL("$host:$port");
                 die "Error connecting to $host:$port: $@\n" unless $socssl;
@@ -1235,7 +1246,7 @@ sub create_imap_client {
         $imap->Debug($debugimap);
         $imap->Buffer(4096);
 
-        if ($ssl) {
+        if ($to_imaps) {
                 $imap->State(Mail::IMAPClient::Connected);
         }
         else {
