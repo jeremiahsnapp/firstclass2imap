@@ -158,13 +158,18 @@ mkdir /home/migrate/update_usermap_sent
 chown -R migrate:migrate /home/migrate
 
 
-# install dag wieers rpmforge yum repository information so you can get the perl modules needed for the migration script
+# CentOS - install dag wieers rpmforge yum repository information so you can get the perl modules needed for the migration script
 wget http://dag.wieers.com/rpm/packages/rpmforge-release/rpmforge-release-0.3.6-1.el5.rf.i386.rpm
 rpm -Uvh rpmforge-release-0.3.6-1.el5.rf.i386.rpm 
 rm rpmforge-release-0.3.6-1.el5.rf.i386.rpm
 
-# install perl modules needed for the migration script
+
+# CentOS - install perl modules needed for the migration script
 yum install -y perl-List-Compare perl-Hash-Case perl-Date-Manip perl-Email-Send perl-Object-Realize-Later perl-Mail-Box perl-Mail-IMAPClient perl-MIME-Types perl-TimeDate
+
+
+# Ubuntu - install perl modules needed for the migration script
+sudo apt-get install liblist-compare-perl libhash-case-perl libdate-manip-perl libemail-send-perl libobject-realize-later-perl libmail-box-perl libmail-imapclient-perl libmime-types-perl libtimedate-perl
 
 
 # patch the perl List::Compare module so it can do case insensitive comparisons
