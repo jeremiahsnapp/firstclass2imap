@@ -24,6 +24,7 @@ mysql -u root -p
 # restart the firewall
 service iptables restart
 
+--------------------------------------------------------------------------
 
 # install phpmyadmin
 cd ~
@@ -35,14 +36,37 @@ cp /var/www/html/phpmyadmin/config.sample.inc.php /var/www/html/phpmyadmin/confi
 
 # set the blowfish_secret to a random string of characters in /var/www/html/phpmyadmin/config.inc.php
 
+--------------------------------------------------------------------------
 
+# login to phpmyadmin with root and password
 # create the "migrate" database and a "migrate" user with a password "test" that can "Select, Insert, Update, Delete" on the "migrate" database
 
 # use the usermap.sql file to create the usermap table and fields
 mysql -u root -p migrate < usermap.sql
 
+
+--------------------------------------------------------------------------
+
+# install dag wieers rpmforge yum repository information so you can get the perl modules needed for the migration script
+wget http://dag.wieers.com/rpm/packages/rpmforge-release/rpmforge-release-0.3.6-1.el5.rf.i386.rpm
+rpm -Uvh rpmforge-release-0.3.6-1.el5.rf.i386.rpm 
+rm rpmforge-release-0.3.6-1.el5.rf.i386.rpm
+
+
+# install perl modules needed for the migration script
+yum install -y perl-List-Compare perl-Hash-Case perl-Date-Manip perl-Email-Send perl-Object-Realize-Later perl-Mail-Box perl-Mail-IMAPClient perl-MIME-Types perl-TimeDate
+
+
+# patch the perl List::Compare module so it can do case insensitive comparisons
+# go to the directory that has the "list-compare-case-insensitive.patch" patch file
+patch -b -d /usr/lib/perl5/vendor_perl/5.8.8/List/ < list_compare_case_insensitive.patch
+
+--------------------------------------------------------------------------
+
 # create a place to store migration logs
 mkdir /var/log/migration
+
+--------------------------------------------------------------------------
 
 # replace sendmail with postfix
 yum install -y postfix
@@ -77,70 +101,10 @@ make install-logwatch
 cd ~
 rm -r postfix-logwatch*
 
+--------------------------------------------------------------------------
 
 # create a "migrate" user who's mailbox will be used to send and receive scripted migration emails
 useradd -s /sbin/nologin migrate
-
-# forward all email sent to "migrate@migrate.schoolname.edu" to procmail for further processing
-cat > /home/migrate/.forward <<EOF
-|/usr/bin/procmail
-EOF
-
-
-# create a .procmailrc file for the migrate user that will filter email into appropriate folders
-cat > /home/migrate/.procmailrc <<EOF
-LOGFILE=$HOME/.procmail.log
-DEFAULT=$HOME/Maildir/
-
-###Anywhere ''  '' .INBOX '' m '' on '' off ''  '' Contains
-##:0fw:
-##* .*
-##|sed -e 's/^To: .*@migrate\.schoolname\.edu,//'
-
-##Begin Filter Configuration -- Please do not edit by hand, use SquirrelMail
-#MAILDIR=\$HOME/Maildir/ # Default mail directory
-:0
-* ^Return-Path: <migrate@migrate.schoolname.edu>
-* ^Subject:.*BA Migrate Script:
-$HOME/ba-sent/
-
-:0
-* ^Return-Path: <Batch_Admin@schoolname.edu>
-* ^Subject:.*BA Migrate Script:
-$HOME/ba-rcvd/
-
-:0
-* ^Return-Path: <migrate@migrate.schoolname.edu>
-* ^Subject:.*BA Migrate Script 1:
-$HOME/ba1_sent/
-
-:0
-* ^Return-Path: <Batch_Admin@schoolname.edu>
-* ^Subject:.*BA Migrate Script 1:
-$HOME/ba1_rcvd/
-
-:0
-* ^Return-Path: <migrate@migrate.schoolname.edu>
-* ^Subject:.*BA Migrate Script Usermap:
-$HOME/update_usermap_sent/
-
-:0
-* ^Return-Path: <Batch_Admin@schoolname.edu>
-* ^Subject:.*BA Migrate Script Usermap:
-$HOME/update_usermap_rcvd/
-
-:0
-* ^Return-Path: <migrate@migrate.schoolname.edu>
-* ^Subject:.*BA Migrate Script switched_user:
-$HOME/switched_user_sent/
-
-:0
-* ^Return-Path: <Batch_Admin@schoolname.edu>
-* ^Subject:.*BA Migrate Script switched_user:
-$HOME/switched_user_rcvd/
-
-##End Filter Configuration
-EOF
 
 
 # make the necessary folders for filtered email
@@ -154,27 +118,72 @@ mkdir /home/migrate/switched_user_sent
 mkdir /home/migrate/update_usermap_rcvd
 mkdir /home/migrate/update_usermap_sent
 
+
+# forward all email sent to "migrate@migrate.schoolname.edu" to procmail for further processing
+cat > /home/migrate/.forward <<EOF
+|/usr/bin/procmail
+EOF
+
+
+# create a .procmailrc file for the migrate user that will filter email into appropriate folders
+cat > /home/migrate/.procmailrc <<EOF
+LOGFILE=\$HOME/.procmail.log
+DEFAULT=\$HOME/Maildir/
+
+###Anywhere ''  '' .INBOX '' m '' on '' off ''  '' Contains
+##:0fw:
+##* .*
+##|sed -e 's/^To: .*@migrate\.schoolname\.edu,//'
+
+##Begin Filter Configuration -- Please do not edit by hand, use SquirrelMail
+#MAILDIR=\$HOME/Maildir/ # Default mail directory
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script:
+\$HOME/ba-sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script:
+\$HOME/ba-rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script 1:
+\$HOME/ba1_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script 1:
+\$HOME/ba1_rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script Usermap:
+\$HOME/update_usermap_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script Usermap:
+\$HOME/update_usermap_rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script switched_user:
+\$HOME/switched_user_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script switched_user:
+\$HOME/switched_user_rcvd/
+
+##End Filter Configuration
+EOF
+
 # set proper ownership on everything in the migrate user's home directory
 chown -R migrate:migrate /home/migrate
 
-
-# CentOS - install dag wieers rpmforge yum repository information so you can get the perl modules needed for the migration script
-wget http://dag.wieers.com/rpm/packages/rpmforge-release/rpmforge-release-0.3.6-1.el5.rf.i386.rpm
-rpm -Uvh rpmforge-release-0.3.6-1.el5.rf.i386.rpm 
-rm rpmforge-release-0.3.6-1.el5.rf.i386.rpm
-
-
-# CentOS - install perl modules needed for the migration script
-yum install -y perl-List-Compare perl-Hash-Case perl-Date-Manip perl-Email-Send perl-Object-Realize-Later perl-Mail-Box perl-Mail-IMAPClient perl-MIME-Types perl-TimeDate
-
-
-# Ubuntu - install perl modules needed for the migration script
-sudo apt-get install liblist-compare-perl libhash-case-perl libdate-manip-perl libemail-send-perl libobject-realize-later-perl libmail-box-perl libmail-imapclient-perl libmime-types-perl libtimedate-perl
-
-
-# patch the perl List::Compare module so it can do case insensitive comparisons
-# go to the directory that has the "list-compare-case-insensitive.patch" patch file
-patch -b -d /usr/lib/perl5/vendor_perl/5.8.8/List/ < list_compare_case_insensitive.patch
+--------------------------------------------------------------------------
 
 # now you're system is ready to run the migration script
 

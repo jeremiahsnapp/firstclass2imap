@@ -1,0 +1,170 @@
+
+
+# for a mysql server i'd also like to have phpmyadmin so go ahead and install the lamp-server task
+
+
+sudo apt-get -y install lamp-server^ php5-cli
+# you will be asked to enter a root password for the mysql server
+
+sudo ufw allow 'Apache Full'
+
+--------------------------------------------------------------------------
+
+sudo apt-get install phpmyadmin
+
+# Require https when accessing phpmyadmin
+sudo a2enmod rewrite
+sudo a2enmod ssl
+sudo a2ensite default-ssl
+
+sudo sed -i '/<Directory \/usr\/share\/phpmyadmin>/ a\#       Require https when accessing phpmyadmin\n        RewriteEngine On\n        RewriteCond %{SERVER_PORT} !=443\n        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [NS,R,L]\n' /etc/apache2/conf.d/phpmyadmin.conf
+
+sudo /etc/init.d/apache2 reload
+
+# Web server to reconfigure automatically:
+# Choose: apache2
+
+
+# Configure database for phpmyadmin with dbconfig-common:  true
+
+
+# Password of the database's administrative user:  i think this needs to be the root password you chose for mysql
+
+# MySQL application password for phpmyadmin:  can leave this blank to choose random password
+
+# copy the following lines and enter them directly into a shell prompt
+cat <<EOF >> /etc/phpmyadmin/config.inc.php
+// Display the PHP information link
+\$cfg['ShowPhpInfo'] = TRUE;
+// Allow editing of all fields including BLOB or BINARY fields
+\$cfg['ProtectBinary'] = FALSE;
+EOF
+
+
+# you should be able to browse to https://server.ip.address/phpmyadmin
+
+--------------------------------------------------------------------------
+
+# login to phpmyadmin with root and password
+# create the "migrate" database and a "migrate" user with a password "test" that can "Select, Insert, Update, Delete" on the "migrate" database
+
+# use the usermap.sql file to create the usermap table and fields
+mysql -u root -p migrate < usermap.sql
+
+--------------------------------------------------------------------------
+
+# Ubuntu - install perl modules needed for the migration script
+sudo apt-get install liblist-compare-perl libhash-case-perl libdate-manip-perl libemail-send-perl libobject-realize-later-perl libmail-box-perl libmail-imapclient-perl libmime-types-perl libtimedate-perl
+
+
+# patch the perl List::Compare module so it can do case insensitive comparisons
+sudo apt-get install patch
+wget --no-check-certificate 'https://github.com/jeremiahsnapp/firstclass2imap/raw/master/SETUP/list_compare_case_insensitive.patch'
+patch -b -d /usr/share/perl5/List/ < list_compare_case_insensitive.patch
+
+
+# create a place to store migration logs
+sudo mkdir /var/log/migration
+
+--------------------------------------------------------------------------
+
+# install postfix
+sudo apt-get install postfix
+# choose "Internet Site" for Postfix Configuration
+# set "System mail name": migrate.schoolname.edu
+
+sudo ufw allow Postfix
+
+# configure postfix
+sudo postconf -e 'home_mailbox = Maildir/'
+sudo postconf -e 'mailbox_size_limit = 512000000'
+sudo postconf -e 'message_size_limit = 102400000'
+
+sudo /etc/init.d/postfix reload
+
+--------------------------------------------------------------------------
+
+# create a "migrate" user who's mailbox will be used to send and receive scripted migration emails
+sudo useradd -m -s /sbin/nologin migrate
+
+
+# make the necessary folders for filtered email
+sudo mkdir /home/migrate/ba1_rcvd
+sudo mkdir /home/migrate/ba1_sent
+sudo mkdir /home/migrate/ba-rcvd
+sudo mkdir /home/migrate/ba-sent
+sudo mkdir /home/migrate/Maildir
+sudo mkdir /home/migrate/switched_user_rcvd
+sudo mkdir /home/migrate/switched_user_sent
+sudo mkdir /home/migrate/update_usermap_rcvd
+sudo mkdir /home/migrate/update_usermap_sent
+
+
+# forward all email sent to "migrate@migrate.schoolname.edu" to procmail for further processing
+cat <<EOF | sudo tee /home/migrate/.forward > /dev/null
+|/usr/bin/procmail
+EOF
+
+
+# create a .procmailrc file for the migrate user that will filter email into appropriate folders
+cat <<EOF | sudo tee /home/migrate/.procmailrc > /dev/null
+LOGFILE=\$HOME/.procmail.log
+DEFAULT=\$HOME/Maildir/
+
+###Anywhere ''  '' .INBOX '' m '' on '' off ''  '' Contains
+##:0fw:
+##* .*
+##|sed -e 's/^To: .*@migrate\.schoolname\.edu,//'
+
+##Begin Filter Configuration -- Please do not edit by hand, use SquirrelMail
+#MAILDIR=\$HOME/Maildir/ # Default mail directory
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script:
+\$HOME/ba-sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script:
+\$HOME/ba-rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script 1:
+\$HOME/ba1_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script 1:
+\$HOME/ba1_rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script Usermap:
+\$HOME/update_usermap_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script Usermap:
+\$HOME/update_usermap_rcvd/
+
+:0
+* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Subject:.*BA Migrate Script switched_user:
+\$HOME/switched_user_sent/
+
+:0
+* ^Return-Path: <Batch_Admin@schoolname.edu>
+* ^Subject:.*BA Migrate Script switched_user:
+\$HOME/switched_user_rcvd/
+
+##End Filter Configuration
+EOF
+
+# set proper ownership on everything in the migrate user's home directory
+sudo chown -R migrate:migrate /home/migrate
+
+--------------------------------------------------------------------------
+
+# now you're system is ready to run the migration script
+
