@@ -60,7 +60,7 @@ sudo apt-get install liblist-compare-perl libhash-case-perl libdate-manip-perl l
 # patch the perl List::Compare module so it can do case insensitive comparisons
 sudo apt-get install patch
 wget --no-check-certificate 'https://github.com/jeremiahsnapp/firstclass2imap/raw/master/SETUP/list_compare_case_insensitive.patch'
-patch -b -d /usr/share/perl5/List/ < list_compare_case_insensitive.patch
+sudo patch -b -d /usr/share/perl5/List/ < list_compare_case_insensitive.patch
 
 
 # create a place to store migration logs
