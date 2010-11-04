@@ -8,22 +8,14 @@ use Data::Dumper;
 
 use Email::Send;
 
-use Mail::Box::Manager;
-use Mail::IMAPClient;
-use MIME::Base64;
-use MIME::Types;
 use List::Compare;
 use Date::Parse;
 use Date::Manip;
 
-my $dry_run = 0;
-my $debugimap = 0;
 my $dataDir = "/home/migrate/ba-rcvd/new/";
 my $timeout = 300;
 my $searchString = "BA Migrate Script: ";
 my $max_export_script_size = 20000;
-my $migrate_user = "migrate";
-my $migrate_password = "migrate";
 my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $domain = 'schoolname.edu';
@@ -31,16 +23,12 @@ my $fc_ip_address = '192.168.1.24';
 my $migrate_ip_address = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_domain) = @_;
+	my ($my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_domain) = @_;
 
 	$dataDir = $my_dataDir;
 	$timeout = $my_timeout;
 	$searchString = $my_searchString;
 	$max_export_script_size = $my_max_export_script_size;
-	$dry_run = $my_dry_run;
-	$debugimap = $my_debugimap;
-	$migrate_user = $my_migrate_user;
-	$migrate_password = $my_migrate_password;
 	$migrate_email_address = $my_migrate_email_address;
 	$fc_admin_email_address = $my_fc_admin_email_address;
 	$fc_ip_address = $my_fc_ip_address;
