@@ -10,8 +10,8 @@ use Date::Parse;
 use Date::Manip;
 
 my $my_timeout = 3000;
-my $my_rcvdDir = "/home/jeremiah.snapp/switched_user_rcvd/new/";
-my $my_sentDir = "/home/jeremiah.snapp/switched_user_sent/new/";
+my $my_rcvdDir = "/home/migrate/switched_user_rcvd/new/";
+my $my_sentDir = "/home/migrate/switched_user_sent/new/";
 my $my_searchString = "BA Migrate Script switched_user: ";
 my $my_migrate_user = "migrate";
 my $my_migrate_password = "migrate";
