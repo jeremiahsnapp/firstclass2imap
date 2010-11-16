@@ -67,16 +67,17 @@ sub build_usermap {
                 # this will be used to match userid's and passwords to their corresponding userid's in our local database
 	        push (@ba_script_body, "GET USER $fromuser 1500 1201 1217 1258\n" );
 
-#		print "$old_username \t $fromuser_hash{$fromuser}{'touser'}\n";
-#		print "fromuser: \"$fromuser\" \t touser: \"$touser\"\n";
+		print "Added '$fromuser' to the 'GET USER' batch admin script.\n";
         }
 
         email_to_batch_admin ($ba_script_subject, \@ba_script_body);
 
+        print print_timestamp() . " : Batch Admin script has been emailed to the FirstClass server ... Waiting for response from the FirstClass server.\n";
+
         my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
 
 	if ($matching_file_arrived) {
-#	        print print_timestamp() . " : Found: $matching_filename\n";
+	        print print_timestamp() . " : Found: $matching_filename ... Response received from the FirstClass server.\n";
 
 	        open (FH, $matching_filename);
 
@@ -107,7 +108,10 @@ sub build_usermap {
 
 				my($row_exists) = $sth2->fetch;
 
-				if ( @$row_exists[0] ) {next;}
+				if ( @$row_exists[0] ) {
+                                        print print_timestamp() . " : fromuser: $fromuser is a 'manual' entry in the database so don't modify the record.\n";
+                                        next;
+                                }
 
 				$sth2 = $dbh2->prepare("SELECT COUNT(*) FROM usermap WHERE fromuser = ? AND touser = ? AND manual = 0");
 				$sth2->execute($fromuser, $fromuser_hash{$fromuser}{'touser'})
@@ -120,16 +124,19 @@ sub build_usermap {
 	                	        $sth2 = $dbh2->prepare ("UPDATE usermap SET tohost = ?, topassword = ?, account_size = ? WHERE fromuser = ? AND touser = ? AND manual = 0");
 	        	                $sth2->execute( $fromuser_hash{$fromuser}{'tohost'}, $fromuser_hash{$fromuser}{'topassword'}, $fromuser_hash{$fromuser}{'size'}, $fromuser, $fromuser_hash{$fromuser}{'touser'} )
 						or die "Couldn't execute UPDATE statement: " . $sth2->errstr;
-		                        print print_timestamp() . " : Updated fromuser: $fromuser\n";
+		                        print print_timestamp() . " : Updated fromuser: $fromuser in the database\n";
 				}
 				# if row does not already exist for this user then create a new row
 				else {
 		                        $sth2 = $dbh2->prepare("INSERT INTO usermap ( switched, manual, migrate, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, account_size ) VALUE ( 1, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?, ? )");
 		                        $sth2->execute( $fromhost, $fromuser, $fromfolder, $fromuser_hash{$fromuser}{"tohost"}, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $tofolder, $recursive, $fromuser_hash{$fromuser}{'size'}) 
 						or die "Couldn't execute INSERT statement: " . $sth2->errstr;
-		                        print print_timestamp() . " : Inserted fromuser: $fromuser \t touser: $fromuser_hash{$fromuser}{'touser'}\n";
+		                        print print_timestamp() . " : Inserted fromuser: $fromuser \t touser: $fromuser_hash{$fromuser}{'touser'} in the database\n";
 				}
 			}
+                        else {
+                                print print_timestamp() . " : fromuser: $fromuser does not exist in the FirstClass server so skip the user.\n";
+                        }
 		}
 
 	        my($sth2) = $dbh2->prepare("SELECT fromuser, touser, tohost FROM usermap WHERE manual = 0") or warn $dbh2->errstr();
@@ -151,7 +158,7 @@ sub build_usermap {
                         	my $sth3 = $dbh2->prepare("DELETE FROM usermap WHERE fromuser = ? AND touser = ? AND manual = 0");
                 	        $sth3->execute($fromuser, $touser)
         	                        or die "Couldn't execute DELETE statement: " . $sth3->errstr;
-				print print_timestamp() . " : Deleted fromuser: $fromuser \t touser: $touser\n";
+				print print_timestamp() . " : Deleted fromuser: $fromuser \t touser: $touser in the database\n";
 			}
 	        }
 #	        foreach $fromuser (sort(keys(%usermap_hash))) {
