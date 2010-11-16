@@ -151,7 +151,7 @@ sub wait_for_matching_file_arrival {
 }
 
 sub print_timestamp {
-	return UnixDate(ParseDate("epoch" . time()),'%Y-%m-%d %T');
+	return UnixDate(ParseDateString("epoch " . time()),'%Y-%m-%d %T');
 }
 
 1;

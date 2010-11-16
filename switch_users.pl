@@ -65,12 +65,12 @@ while ($count < 200) {
 sub elapsed_time {
         my $lasttime = shift;
         my $timenow = time();
-        my $elapsed_time = Delta_Format(DateCalc(ParseDate("epoch" . $lasttime), ParseDate("epoch" . $timenow)), , 0, "%dvd %hvh %mvm %svs");
-        my $elapsed_time_secs = Delta_Format(DateCalc(ParseDate("epoch" . $lasttime), ParseDate("epoch" . $timenow)), , 0, "%sh");
+        my $elapsed_time = Delta_Format(DateCalc(ParseDateString("epoch " . $lasttime), ParseDateString("epoch " . $timenow)), , 0, "%dvd %hvh %mvm %svs");
+        my $elapsed_time_secs = Delta_Format(DateCalc(ParseDateString("epoch " . $lasttime), ParseDateString("epoch " . $timenow)), , 0, "%sh");
         $lasttime = $timenow;
         return($elapsed_time, $lasttime, $elapsed_time_secs);
 }
 
 sub print_timestamp {
-        return UnixDate(ParseDate("epoch" . time()),'%Y-%m-%d %T');
+        return UnixDate(ParseDateString("epoch " . time()),'%Y-%m-%d %T');
 }

@@ -472,7 +472,7 @@ sub dir_imap_sync {
 
 				if ($imap->append_string("$tofolder", 
 					$pop_msg, '\Seen', 
-					UnixDate(ParseDate("epoch " . str2time($sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'})),'%d-%b-%Y %T %z'))) {
+					UnixDate(ParseDateString("epoch " . str2time($sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'})),'%d-%b-%Y %T %z'))) {
 
 					$imap_folder_append++;
 					print print_timestamp() . " : IMAP Appended to Folder: \"$tofolder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'} . "\n";
@@ -526,7 +526,7 @@ sub dir_imap_sync {
 
 				if ($imap->append_string("$tofolder", 
 					$pop_msg, '\Seen',
-					UnixDate(ParseDate("epoch " . str2time($sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'})),'%d-%b-%Y %T %z'))) {
+					UnixDate(ParseDateString("epoch " . str2time($sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'})),'%d-%b-%Y %T %z'))) {
 
 					$imap_folder_update++;
 					print print_timestamp() . " : IMAP Updated in Folder: \"$tofolder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
@@ -1294,13 +1294,13 @@ sub email_user_notification {
 sub elapsed_time {
 	my $lasttime = shift;
 	my $timenow = time();
-	my $elapsed_time = Delta_Format(DateCalc(ParseDate("epoch" . $lasttime), ParseDate("epoch" . $timenow)), , 0, "%dvd %hvh %mvm %svs");
+	my $elapsed_time = Delta_Format(DateCalc(ParseDateString("epoch " . $lasttime), ParseDateString("epoch " . $timenow)), , 0, "%dvd %hvh %mvm %svs");
 	$lasttime = $timenow;
 	return($elapsed_time, $lasttime);
 }
 
 sub print_timestamp {
-	return UnixDate(ParseDate("epoch" . time()),'%Y-%m-%d %T');
+	return UnixDate(ParseDateString("epoch " . time()),'%Y-%m-%d %T');
 }
 
 1;
