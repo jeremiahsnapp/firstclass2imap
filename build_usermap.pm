@@ -9,7 +9,6 @@ use Data::Dumper;
 use Email::Send;
 
 use List::Compare;
-use Date::Parse;
 use Date::Manip;
 
 my $list_of_users_filename = "";

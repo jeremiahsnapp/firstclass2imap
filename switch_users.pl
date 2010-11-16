@@ -6,7 +6,6 @@ use strict;
 use DBI;
 
 use switch_users;
-use Date::Parse;
 use Date::Manip;
 
 my $my_timeout = 3000;

@@ -7,7 +7,6 @@ use POSIX qw(ceil floor);
 use DBI;
 
 use firstclass2imap;
-use Date::Parse;
 use Date::Manip;
 
 if (@ARGV != 1) {
