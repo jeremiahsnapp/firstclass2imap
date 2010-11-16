@@ -116,7 +116,7 @@ DEFAULT=\$HOME/Maildir/
 ##* .*
 ##|sed -e 's/^To: .*@migrate\.schoolname\.edu,//'
 
-##Begin Filter Configuration -- Please do not edit by hand, use SquirrelMail
+##Begin Filter Configuration
 #MAILDIR=\$HOME/Maildir/ # Default mail directory
 :0
 * ^Return-Path: <migrate@migrate.schoolname.edu>
