@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-open(STDOUT, '>>', "/var/log/migration/update_usermap") or die "Can't redirect STDOUT: $!";
+open(STDOUT, '>>', "/var/log/migration/build_usermap") or die "Can't redirect STDOUT: $!";
 open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
 
 use build_usermap;
@@ -11,8 +11,8 @@ use build_usermap;
 
 my $my_list_of_users_filename = "";
 
-my $my_rcvdDir = "/home/migrate/update_usermap_rcvd/new/";
-my $my_sentDir = "/home/migrate/update_usermap_sent/new/";
+my $my_rcvdDir = "/home/migrate/build_usermap_rcvd/new/";
+my $my_sentDir = "/home/migrate/build_usermap_sent/new/";
 my $my_timeout = 300;
 my $my_searchString = "BA Migrate Script Usermap: ";
 my $my_max_export_script_size = 20000;

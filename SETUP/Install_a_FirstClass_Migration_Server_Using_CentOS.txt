@@ -115,8 +115,8 @@ mkdir /home/migrate/ba-sent
 mkdir /home/migrate/Maildir
 mkdir /home/migrate/switched_user_rcvd
 mkdir /home/migrate/switched_user_sent
-mkdir /home/migrate/update_usermap_rcvd
-mkdir /home/migrate/update_usermap_sent
+mkdir /home/migrate/build_usermap_rcvd
+mkdir /home/migrate/build_usermap_sent
 
 
 # forward all email sent to "migrate@migrate.schoolname.edu" to procmail for further processing
@@ -160,12 +160,12 @@ DEFAULT=\$HOME/Maildir/
 :0
 * ^Return-Path: <migrate@migrate.schoolname.edu>
 * ^Subject:.*BA Migrate Script Usermap:
-\$HOME/update_usermap_sent/
+\$HOME/build_usermap_sent/
 
 :0
 * ^Return-Path: <Batch_Admin@schoolname.edu>
 * ^Subject:.*BA Migrate Script Usermap:
-\$HOME/update_usermap_rcvd/
+\$HOME/build_usermap_rcvd/
 
 :0
 * ^Return-Path: <migrate@migrate.schoolname.edu>
