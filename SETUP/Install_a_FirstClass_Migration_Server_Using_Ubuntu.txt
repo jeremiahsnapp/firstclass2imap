@@ -33,7 +33,7 @@ sudo /etc/init.d/apache2 reload
 # MySQL application password for phpmyadmin:  can leave this blank to choose random password
 
 # copy the following lines and enter them directly into a shell prompt
-cat <<EOF >> /etc/phpmyadmin/config.inc.php
+cat <<EOF | sudo tee -a /etc/phpmyadmin/config.inc.php > /dev/null
 // Display the PHP information link
 \$cfg['ShowPhpInfo'] = TRUE;
 // Allow editing of all fields including BLOB or BINARY fields
