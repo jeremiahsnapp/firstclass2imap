@@ -47,7 +47,9 @@ sub build_usermap {
 	# PERL MYSQL CONNECT
 	my($dbh) = DBI->connect("DBI:mysql:$mysqldb", $mysqluser, $mysqlpassword) or die "Couldn't connect to database: " . DBI->errstr;
 
-        my(%fromuser_hash);
+        $dbh->{mysql_auto_reconnect} = 1;
+
+	my(%fromuser_hash);
         my($ba_script_subject) = $searchString . "Get Passwords";
         my(@ba_script_body) = "REPLY\n";
 

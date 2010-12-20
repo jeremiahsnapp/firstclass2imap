@@ -27,6 +27,8 @@ my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");
 # PERL MYSQL CONNECT
 my($dbh) = DBI->connect("DBI:mysql:$mysqldb", $mysqluser, $mysqlpassword) or die "Couldn't connect to database: " . DBI->errstr;
 
+$dbh->{mysql_auto_reconnect} = 1;
+
 my $count = 0;
 
 while ($count < 200) {
