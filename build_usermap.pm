@@ -49,7 +49,7 @@ sub build_usermap {
 
         $dbh->{mysql_auto_reconnect} = 1;
 
-	my(%fromuser_hash);
+        my(%fromuser_hash);
         my($ba_script_subject) = $searchString . "Get Passwords";
         my(@ba_script_body) = "REPLY\n";
 
@@ -61,7 +61,7 @@ sub build_usermap {
 	# verifies the existence of a set of users in Firstclass as well as the size of each user's account and their passwords
         foreach my $line (<FH>) {
 		$line  =~ /(.*),(.*)/;
-		($fromuser, $touser) = ($1, $2);
+		($fromuser, $touser) = (lc($1), lc($2));
 
                 $fromuser_hash{$fromuser}{'tohost'} = $to_ip_address;
                 $fromuser_hash{$fromuser}{'touser'} = $touser;
