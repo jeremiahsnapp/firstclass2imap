@@ -912,7 +912,9 @@ sub process_ba_import_script {
 
 			push (@item, "Put Previous 8120 7 1252 8140 0 8141 0 8126 $1 9 \"$subject\"\n\n");
 
-                        push (@item, "Put Previous 8014.0 0 \"FC-UNIQUE-ID-Description: This is for migration purposes only\\rFC-UNIQUE-ID: $fcuid\\r\"\n");
+                        # For some reason when using the pop3 interface to get this header, some messages were concatenating other headers causing syncing to fail
+                        # So put the FC-UNIQUE-ID header before the FC-UNIQUE-ID-Description so we can guarantee that we will only get the ID when we get the header
+                        push (@item, "Put Previous 8014.0 0 \"FC-UNIQUE-ID: $fcuid\\rFC-UNIQUE-ID-Description: This is for migration purposes only\\r\"\n");
 
 			# Sometimes First Class email has malformed internet headers so this cleans up all First Class email internet headers
 			foreach my $internet_header_line ( split( /\\r/, join("", @internet_header_buffer) ) ) {
