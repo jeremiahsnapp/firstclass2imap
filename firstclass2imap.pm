@@ -998,8 +998,17 @@ sub get_export_filter_date_ranges {
                                 my $item_size = $5;
                                 my $fcuid = $6;
 
-                                my $fc_timestamp = UnixDate($item_date . " " . $item_time,"%s") - 2212140496;
-### 2212136896;     i changed this on 12/8/08 because it seemed all my calc's were off by an hour...
+                                my $calcdate = new Date::Manip::Date;
+                                $calcdate->parse($item_date . " " . $item_time);
+
+                                # 2212122496 is the UTC time offset in seconds that FirstClass uses
+                                my $fc_timestamp = -2212122496 + $calcdate->secs_since_1970_GMT();
+
+                                # adjust timestamp to the timezone of the firstclass server
+                                $fc_timestamp -= ( 7 * 3600 );
+
+                                # adjust timestamp for daylight savings timezone if needed
+                                $fc_timestamp += ( $calcdate->printf('%Z') =~ /\w+D/ ) ? 3600 : 0; 
 
                                 $fcuid .= "|$fc_timestamp";
 
