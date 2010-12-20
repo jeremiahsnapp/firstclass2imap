@@ -649,7 +649,7 @@ sub get_fixed_fc_subfolders {
 			while (<FH>) {
 				if ( (/FC-INDEX: (\d+)/) && ($1 ne "") ) {
 					my $idx = $1;
-					if ( (<FH> =~ /1020 \d+ \"\[First Class\] $fromuser.*\"/i) ) {
+					if ( (<FH> =~ /1020 \d+ \"\[.*\] $fromuser.*\"/i) ) {
 						$aliases{$idx} = 0;
 					}
 					else {
