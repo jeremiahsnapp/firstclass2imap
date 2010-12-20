@@ -19,6 +19,13 @@ if (@ARGV != 1) {
 
 my $instance = shift(@ARGV);
 
+my @procs = `ps ax`;
+if ( grep(/firstclass2imap.pl\s+$instance/, @procs) > 1 ) {
+    print "Instance $instance is already running.\n";
+    print "Choose a different value for 'instance'.\n";
+    exit();
+}
+
 my $my_timeout = 3600;
 my $my_rcvdDir = "/home/migrate/Maildir/.ba_rcvd_$instance/";
 my $my_sentDir = "/home/migrate/Maildir/.ba_sent_$instance/";
