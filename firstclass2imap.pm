@@ -184,7 +184,7 @@ sub migrate_folders {
 	my $elapsed_time = "";
 
 	my($account_missed_fcuids_count, $dir_account_skip, $dir_account_append, $dir_account_delete, $dir_account_update, $dir_account_total_fcuids) = (0, 0, 0, 0, 0, 0);
-	my($imap_account_skip, $imap_account_append, $imap_account_delete, $imap_account_update, $imap_account_total_fcuids) = (0, 0, 0, 0);
+	my($imap_account_skip, $imap_account_append, $imap_account_delete, $imap_account_update, $imap_account_total_fcuids) = (0, 0, 0, 0, 0);
 	my($account_total_size, $account_total_size_to_be_migrated) = (0, 0);
 	my %missed_fcuids;
 
