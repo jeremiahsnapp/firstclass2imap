@@ -179,7 +179,9 @@ while ($count < 1) {
 		$sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
                 $sth->finish;
 
-		if ($migrated_folder_structure && $migrated_folders) {
+                if (0) {
+###             this is commented out because we don't want email notifications at this point since there would be so many
+###		if ($migrated_folder_structure && $migrated_folders) {
 			my $from_address = "$migration_notification_email_address";
 
 			my $to_address = "$migration_notification_email_address";
