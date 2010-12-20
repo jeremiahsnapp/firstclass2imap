@@ -9,15 +9,19 @@ use DBI;
 use firstclass2imap;
 use Date::Manip;
 
-if (@ARGV != 1) {
-        print "Usage: ./firstclass2imap.pl <instance>\n\n";
+if (@ARGV != 3) {
+        print "Usage: ./single_firstclass2imap.pl <instance> <threshold> <destination_email_address>\n\n";
         print "Where <instance> is a number representing the migration account in First Class that will be used.\n\n";
-        print "Example: ./firstclass2imap.pl 1\n\n";
+        print "<threshold> is the maximum size of a batch admin email in kB\n\n";
+        print "<fc_user> is the firstclass user you want to migrate.\n\n";
+        print "Example: ./single_firstclass2imap.pl 1 20000 fc_user\n\n";
 
         exit;
 }
 
 my $instance = shift(@ARGV);
+my $threshold = shift(@ARGV);
+my $fc_user = shift(@ARGV);
 
 my @procs = `ps ax`;
 if ( grep(/firstclass2imap.pl\s+$instance/, @procs) > 1 ) {
@@ -32,7 +36,7 @@ my $my_sentDir = "/home/migrate/Maildir/.ba_sent_$instance/";
 my $my_searchString = "BA Migrate Script $instance: ";
 my $my_migrate_user = "migrate" . $instance;
 my $my_migrate_password = "migrate" . $instance;
-my $my_max_export_script_size = 20000;
+my $my_max_export_script_size = $threshold;
 my $my_dry_run = 0;
 my $my_debugimap = 0;
 my $my_to_imaps = 1;
@@ -74,10 +78,7 @@ while ($count < 1) {
 		(0, "", "", "", "", "", "", "", 0, 0, 0);
 
 # this query is helpful during testing ... it limits the migration to a specific account
-	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE touser = 'registrar'");
-
-# this query is for when you are ready to migrate all accounts
-###	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE fromuser = '$fc_user'");
 
 	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
@@ -181,7 +182,7 @@ while ($count < 1) {
 
                 if (0) {
 ###             this is commented out because we don't want email notifications at this point since there would be so many
-###		if ($migrated_folder_structure && $migrated_folders) {
+###             if ($migrated_folder_structure && $migrated_folders) {
 			my $from_address = "$migration_notification_email_address";
 
 			my $to_address = "$migration_notification_email_address";
