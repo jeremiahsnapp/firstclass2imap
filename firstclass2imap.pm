@@ -322,13 +322,10 @@ sub migrate_folders {
 
 		my @imap_fcuids = ();
         	foreach my $uid (keys(%$hash_ref)) {
-			my $fcuid = $hash_ref->{$uid}->{"BODY[HEADER.FIELDS (FC-UNIQUE-ID)]"};
-			$fcuid =~ s/.*FC-UNIQUE-ID:\s*//g;
-
-			if ($fcuid ne "") {
-				$imap_folder_total_fcuids++;
-				push(@imap_fcuids, $fcuid);
-			}
+                        if ( $hash_ref->{$uid}->{"BODY[HEADER.FIELDS (FC-UNIQUE-ID)]"} =~ /FC-UNIQUE-ID:\s*(.*?)\s*$/ ) {
+                                push(@imap_fcuids, $1);
+                                $imap_folder_total_fcuids++;
+                        }
 	        }
 		$imap->close;
 
