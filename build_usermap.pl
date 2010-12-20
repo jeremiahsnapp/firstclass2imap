@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-open(STDOUT, '>>', "/var/log/migration/build_usermap") or die "Can't redirect STDOUT: $!";
+open(STDOUT, '>', "/var/log/migration/build_usermap") or die "Can't redirect STDOUT: $!";
 open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
 
 use build_usermap;
