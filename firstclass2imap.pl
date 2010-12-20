@@ -99,14 +99,16 @@ while ($count < 1) {
 ###	# you can override recursive migration here
 ###	$recursive = 0;
 
+        $migrated++;
+
 	open(STDOUT, '>>', "/var/log/migration/$touser") or die "Can't redirect STDOUT: $!";
 	open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
 
 	system("rm -rf $my_rcvdDir");
 	system("rm -rf $my_sentDir");
 
-	$sth = $dbh->prepare ("UPDATE usermap SET migrating = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-	if ($sth->execute( $fromuser, $touser, $fromfolder, $tofolder )) {
+	$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), migrating = 1, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+	if ($sth->execute( $migrated, $fromuser, $touser, $fromfolder, $tofolder )) {
                 $sth->finish;
 		my($migrated_folder_structure, $migrated_folders, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids) = (0, 0, 0, 0, 0, 0);
 		my ($missed_folders_count, $missed_fcuids_count) = (0, 0);
@@ -139,7 +141,7 @@ while ($count < 1) {
 
 			($elapsed_time, $lasttime, $elapsed_time_secs) = elapsed_time($starttime);
 
-			$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), duration = ?, fc_folder_count = ?, destination_folder_count = ?, fc_fcuid_count = ?, destination_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+			$sth = $dbh->prepare ("UPDATE usermap SET duration = ?, fc_folder_count = ?, destination_folder_count = ?, fc_fcuid_count = ?, destination_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
 			$sth->execute( $elapsed_time_secs, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder, $tofolder );
                         $sth->finish;
 
@@ -150,10 +152,8 @@ while ($count < 1) {
 			}
 		}
 
-		$migrated++;
-
-		$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-		$sth->execute( $migrated, $fromuser, $touser, $fromfolder, $tofolder );
+		$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+		$sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
                 $sth->finish;
 
 		if ($migrated_folder_structure && $migrated_folders) {
