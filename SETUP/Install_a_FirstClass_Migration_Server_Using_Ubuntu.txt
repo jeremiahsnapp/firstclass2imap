@@ -17,7 +17,7 @@ sudo a2enmod rewrite
 sudo a2enmod ssl
 sudo a2ensite default-ssl
 
-sudo sed -i '/<Directory \/usr\/share\/phpmyadmin>/ a\#       Require https when accessing phpmyadmin\n        RewriteEngine On\n        RewriteCond %{SERVER_PORT} !=443\n        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [NS,R,L]\n' /etc/apache2/conf.d/phpmyadmin.conf
+sudo sed -i '/<Directory \/usr\/share\/phpmyadmin>/ a\#       Require https when accessing phpmyadmin\n        RewriteEngine On\n        RewriteCond %{HTTPS} =off\n        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [NS,R,L]\n' /etc/apache2/conf.d/phpmyadmin.conf
 
 sudo /etc/init.d/apache2 reload
 
