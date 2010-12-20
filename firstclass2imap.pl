@@ -70,22 +70,31 @@ while ($count < 1) {
 	my $elapsed_time = "";
 	my $elapsed_time_secs = "";
 
-	my ($switched, $fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $migrated) = 
-		(0, "", "", "", "", "", "", "", 0, 0);
+	my ($switched, $fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $migrated, $migrating) = 
+		(0, "", "", "", "", "", "", "", 0, 0, 0);
 
 # this query is helpful during testing ... it limits the migration to a specific account
-	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated FROM usermap WHERE touser = 'registrar'");
+	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE touser = 'registrar'");
 
 # this query is for when you are ready to migrate all accounts
-###	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+###	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
 
 	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
-	$sth->bind_columns (\$switched, \$fromhost, \$fromuser, \$fromfolder, \$tohost, \$touser, \$topassword, \$tofolder, \$recursive, \$migrated);
+	$sth->bind_columns (\$switched, \$fromhost, \$fromuser, \$fromfolder, \$tohost, \$touser, \$topassword, \$tofolder, \$recursive, \$migrated, \$migrating);
 
 	$sth->fetchrow_hashref;
 
         $sth->finish;
+
+        if ( $fromuser eq "" ) {
+            print "Unable to find an account in the database to migrate.\n";
+            exit;
+        }
+        if ( $migrating == 1 ) {
+            print "The user $fc_user is already being migrated.\n";
+            exit;
+        }
 
 ###	# you can override recursive migration here
 ###	$recursive = 0;
