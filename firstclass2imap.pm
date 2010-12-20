@@ -587,19 +587,23 @@ sub fc_folder_exists {
 sub convert_folder_names_fc_to_imap {
         my($fc_folder) = @_;
 
-	$fc_folder =~ s/\s+:/:/;		# remove trailing whitespace in a first class folder's name since destination folder names don't allow for it
-	$fc_folder =~ s/\s+$//;			# remove trailing whitespace in a first class folder's name since destination folder names don't allow for it
+        $fc_folder =~ s/:\s+/:/;                # remove leading whitespace in a first class folder's name since destination folder names don't allow for it
+        $fc_folder =~ s/^\s+//;                 # remove leading whitespace in a first class folder's name since destination folder names don't allow for it
+        $fc_folder =~ s/\s+:/:/;                # remove trailing whitespace in a first class folder's name since destination folder names don't allow for it
+        $fc_folder =~ s/\s+$//;                 # remove trailing whitespace in a first class folder's name since destination folder names don't allow for it
+        $fc_folder =~ s/\s{2,}/ /g;             # this just collapses multiple whitespace characters down to a single space since some (or all) imap doesn't like multiple spaces in a folder name
 
-        $fc_folder =~ s/&/&-/g;			# enables &'s to be used in folder names
+        $fc_folder =~ s/&/&-/g;                 # enables &'s to be used in folder names
         $fc_folder =~ s/\//\\/g;
-        $fc_folder =~ s/:/\//g;			# First Class uses ':' in a folder path but destination uses '/' so we make the conversion here
+        $fc_folder =~ s/:/\//g;                 # First Class uses ':' in a folder path but destination uses '/' so we make the conversion here
         $fc_folder =~ s/\/\\/\//g;
 #        $fc_folder =~ s/\\/\\\\/g;
         $fc_folder =~ s/\?/\|/g;
-        $fc_folder =~ s/^Mailbox/INBOX/i;
+        $fc_folder =~ s/^.*?(?=\/)|.*/INBOX/;   # replace the first folder name with "INBOX"
+        $fc_folder =~ s/^INBOX\///i;            # this is specific for gmail ... if this is a subfolder then don't prepend "INBOX/" to the label
 
         if ( $fc_folder !~ /\// ) {
-                $fc_folder .= "/";
+#                $fc_folder .= "/";
         }
 
         return $fc_folder;
