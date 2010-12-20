@@ -99,10 +99,19 @@ while ($count < 1) {
 ###	# you can override recursive migration here
 ###	$recursive = 0;
 
+
+        open(FH, '>>', "/var/log/migration/instance.$instance");
+        print FH print_timestamp() . " $fromuser\n";
+        close FH;
+
         $migrated++;
 
-	open(STDOUT, '>>', "/var/log/migration/$touser") or die "Can't redirect STDOUT: $!";
-	open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
+        unless ( -e "/var/log/migration/$fromuser") {
+               system("mkdir /var/log/migration/$fromuser");
+        }
+
+        open(STDOUT, '>', "/var/log/migration/$fromuser/$fromuser." . $migrated) or die "Can't redirect STDOUT: $!";
+        open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
 
 	system("rm -rf $my_rcvdDir");
 	system("rm -rf $my_sentDir");
