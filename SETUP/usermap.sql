@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS `usermap` (
   `migrated` int(11) NOT NULL default '0',
   `time_migrated` timestamp NULL default NULL,
   `duration` int(11) NOT NULL default '0',
+  `percent_complete` int(11) NOT NULL DEFAULT '0',
   `fc_folder_count` int(11) NOT NULL default '0',
   `destination_folder_count` int(11) NOT NULL default '0',
   `fc_fcuid_count` int(11) NOT NULL default '0',

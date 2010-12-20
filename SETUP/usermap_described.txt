@@ -36,6 +36,8 @@
 	time stamp when this account was last migrated
   `duration` int(11) NOT NULL default '0',
 	total elapsed time in seconds spent migrating this account
+  `percent_complete` int(11) NOT NULL DEFAULT '0',
+	percentage of total migration completed for this account
   `fc_folder_count` int(11) NOT NULL default '0',
 	number of folders this account has in firstclass
   `destination_folder_count` int(11) NOT NULL default '0',

@@ -150,8 +150,22 @@ while ($count < 1) {
 
 			($elapsed_time, $lasttime, $elapsed_time_secs) = elapsed_time($starttime);
 
-			$sth = $dbh->prepare ("UPDATE usermap SET duration = ?, fc_folder_count = ?, destination_folder_count = ?, fc_fcuid_count = ?, destination_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-			$sth->execute( $elapsed_time_secs, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder, $tofolder );
+                        my $percent_complete = 0;
+                        if ( ($fc_folder_count + $dir_account_total_fcuids) != 0 ) {
+                          $percent_complete = floor(
+                                                      (
+                                                        ( ($fc_folder_count - $missed_folders_count) + ($dir_account_total_fcuids - $missed_fcuids_count) )
+                                                        / ($fc_folder_count + $dir_account_total_fcuids)
+                                                      )
+                                                      * 100
+                                                  );
+                        }
+                        else {
+                          $percent_complete = 100;
+                        }
+
+                        $sth = $dbh->prepare ("UPDATE usermap SET duration = ?, percent_complete = ?, fc_folder_count = ?, destination_folder_count = ?, fc_fcuid_count = ?, destination_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+                        $sth->execute( $elapsed_time_secs, $percent_complete, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder, $tofolder );
                         $sth->finish;
 
 			if ( ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
