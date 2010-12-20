@@ -58,7 +58,7 @@ sub initialize {
 sub migrate_folder_structure {
 	my($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination) = @_;
 
-	print print_timestamp() . " : Start Migrating Folder Structure for Account: \"$touser\" with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
+	print print_timestamp() . " : Start Migrating Folder Structure for Account: $fromuser with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
 
 	my($fc_total_folders, $imap_created_folders, $imap_deleted_folders, $imap_total_folders) = (0, 0, 0, 0);
 	
@@ -72,14 +72,14 @@ sub migrate_folder_structure {
 
 	if (!$successful) {
 		($elapsed_time, $lasttime) = elapsed_time($starttime);
-		print print_timestamp() . " : Failed to Determine Whether Folder: $fromfolder exists in Account: $touser\n";
-		print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $touser\n";
+		print print_timestamp() . " : Failed to Determine Whether Folder: $fromfolder exists in Account: $fromuser\n";
+		print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $fromuser\n";
 		return 0;
 	}
 	if (!$fc_folder_exists) {
 		($elapsed_time, $lasttime) = elapsed_time($starttime);
-		print print_timestamp() . " : Folder: $fromfolder does NOT exist in Account: $touser\n";
-		print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $touser\n";
+		print print_timestamp() . " : Folder: $fromfolder does NOT exist in Account: $fromuser\n";
+		print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $fromuser\n";
 		return 0;
 	}
 	push (@from_folders_list, $fromfolder);
@@ -87,8 +87,8 @@ sub migrate_folder_structure {
 		my($failed, @temp_from_folders) = get_fixed_fc_subfolders($fromuser, $fromfolder);
 		if ($failed) {
 			($elapsed_time, $lasttime) = elapsed_time($starttime);
-			print print_timestamp() . " : Failed to get subfolders for Account: $touser\n";
-			print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $touser\n";
+			print print_timestamp() . " : Failed to get subfolders for Account: $fromuser\n";
+			print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $fromuser\n";
 			return 0;
 		}
 		push(@from_folders_list, @temp_from_folders);
@@ -103,7 +103,7 @@ sub migrate_folder_structure {
 
 	if (!@to_folders_list) {
 		print print_timestamp() . " : Failed to get list of destination folders for Account: $touser\n";
-		print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $touser\n";
+		print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $fromuser\n";
 		return 0;
 	}
 
@@ -123,7 +123,7 @@ sub migrate_folder_structure {
 		else {
 			($elapsed_time, $lasttime) = elapsed_time($starttime);
 			print print_timestamp() . " : Failed to Create Folder: $imap_folder\n";
-			print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $touser\n";
+			print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $fromuser\n";
 			return 0;
 		}
 	} 
@@ -155,7 +155,7 @@ sub migrate_folder_structure {
 	my @missed_folders = $lc->get_Lonly;
 	my $missed_folders_count = @missed_folders;
 
-        print print_timestamp() . " : Sync Report for $touser\'s Folder Structure: \n";
+        print print_timestamp() . " : Sync Report for $fromuser\'s Folder Structure: \n";
         print "\t\t\t FC    \t  IMAP\n";
         print "Created Folders: \t\t    " . $imap_created_folders . "\n";
         print "Deleted Folders: \t\t    " . $imap_deleted_folders . "\n";
@@ -169,7 +169,7 @@ sub migrate_folder_structure {
 	}
 
 	($elapsed_time, $lasttime) = elapsed_time($starttime);
-	print print_timestamp() . " : Finished Migrating Folder Structure for Account: $touser in $elapsed_time\n";
+	print print_timestamp() . " : Finished Migrating Folder Structure for Account: $fromuser in $elapsed_time\n";
 
 	return (1, $fc_total_folders, $imap_total_folders, \@missed_folders);
 }
@@ -177,7 +177,7 @@ sub migrate_folder_structure {
 sub migrate_folders {
 	my($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email) = @_;
 
-	print print_timestamp() . " : Start Migrating Folders for Account: $touser\n";
+	print print_timestamp() . " : Start Migrating Folders for Account: $fromuser\n";
 
 	my $starttime = time();
 	my $lasttime = $starttime;
@@ -194,14 +194,14 @@ sub migrate_folders {
 
 	if (!$successful) {
 		($elapsed_time, $lasttime) = elapsed_time($starttime);
-		print print_timestamp() . " : Failed to Determine Whether Folder: $fromfolder exists in Account: $touser\n";
-		print print_timestamp() . " : Failed to Migrate Folders for Account: $touser\n";
+		print print_timestamp() . " : Failed to Determine Whether Folder: $fromfolder exists in Account: $fromuser\n";
+		print print_timestamp() . " : Failed to Migrate Folders for Account: $fromuser\n";
 		return (0, $dir_account_total_fcuids, $imap_account_total_fcuids);
 	}
 	if (!$fc_folder_exists) {
 		($elapsed_time, $lasttime) = elapsed_time($starttime);
-		print print_timestamp() . " : Folder: $fromfolder does NOT exist in Account: $touser\n";
-		print print_timestamp() . " : Failed to Migrate Folders for Account: $touser\n";
+		print print_timestamp() . " : Folder: $fromfolder does NOT exist in Account: $fromuser\n";
+		print print_timestamp() . " : Failed to Migrate Folders for Account: $fromuser\n";
 		return (0, $dir_account_total_fcuids, $imap_account_total_fcuids);
 	}
 	push (@from_folders_list, $fromfolder);
@@ -209,8 +209,8 @@ sub migrate_folders {
 		my($failed, @temp_from_folders) = get_fixed_fc_subfolders($fromuser, $fromfolder);
 		if ($failed) {
 			($elapsed_time, $lasttime) = elapsed_time($starttime);
-			print print_timestamp() . " : Failed to get subfolders for Account: $touser\n";
-			print print_timestamp() . " : Failed to Migrate Folders for Account: $touser\n";
+			print print_timestamp() . " : Failed to get subfolders for Account: $fromuser\n";
+			print print_timestamp() . " : Failed to Migrate Folders for Account: $fromuser\n";
 			return (0, $dir_account_total_fcuids, $imap_account_total_fcuids);
 		}
 		push(@from_folders_list, @temp_from_folders);
@@ -236,7 +236,7 @@ sub migrate_folders {
 
 		if (!$successful) {
 			($elapsed_time, $lasttime) = elapsed_time($starttime);
-			print print_timestamp() . " : Failed to Migrate Folders for Account: $touser\n";
+			print print_timestamp() . " : Failed to Migrate Folders for Account: $fromuser\n";
 			return (0, $dir_account_total_fcuids, $imap_account_total_fcuids);
 		}
 
@@ -360,7 +360,7 @@ sub migrate_folders {
 		$imap_account_update += $imap_folder_update;
 		$imap_account_total_fcuids += $imap_folder_total_fcuids;
 
-		print print_timestamp() . " : Sync Report for $touser\'s \"$imap_folder\" folder: \n";
+		print print_timestamp() . " : Sync Report for $fromuser\'s \"$imap_folder\" folder: \n";
 		print "Total size of Folder: \"$imap_folder\" content is: $folder_total_size KB.\n";
 		print "Total size of Folder: \"$imap_folder\" content to be migrated is: $folder_total_size_to_be_migrated KB.\n";
 		print "\t\t\tFC-DIR \t  IMAP\n";
@@ -377,15 +377,15 @@ sub migrate_folders {
 			my ($skippeddate, $size) = @$daterange;
 			print "Skipped email in Folder: \"$imap_folder\" from: $skippeddate because the size $size KB is too large.\n";
 		}
-		print "End of Report for $touser\'s \"$imap_folder\" folder.\n";
+		print "End of Report for $fromuser\'s \"$imap_folder\" folder.\n";
 
 		($elapsed_time, $lasttime) = elapsed_time($lasttime);
 		print print_timestamp() . " : Finished Migrating Folder: $imap_folder in $elapsed_time\n";
 	}
 
-	print print_timestamp() . " : Sync Report for all of $touser\'s folders: \n";
-	print "Total size of $touser\'s account is: $account_total_size KB.\n";
-	print "Total size of $touser\'s account content to be migrated is: $account_total_size_to_be_migrated KB.\n";
+	print print_timestamp() . " : Sync Report for all of $fromuser\'s folders: \n";
+	print "Total size of $fromuser\'s account is: $account_total_size KB.\n";
+	print "Total size of $fromuser\'s account content to be migrated is: $account_total_size_to_be_migrated KB.\n";
 	print "\t\t\tFC-DIR \t  IMAP\n";
 	print "Skip: \t\t\t $dir_account_skip \n";
 	print "Append: \t\t $dir_account_append \t    $imap_account_append\n";
@@ -396,10 +396,10 @@ sub migrate_folders {
 	if ( $account_missed_fcuids_count ) {
 		print $account_missed_fcuids_count . " FC-UNIQUE-ID('s) in FC's account did NOT successfully migrate to the destination account.\n";
 	}
-	print "End of Report for all of $touser\'s folders.\n";
+	print "End of Report for all of $fromuser\'s folders.\n";
 
 	($elapsed_time, $lasttime) = elapsed_time($starttime);
-	print print_timestamp() . " : Finished Migrating Folders for Account: $touser in $elapsed_time\n";
+	print print_timestamp() . " : Finished Migrating Folders for Account: $fromuser in $elapsed_time\n";
 
 	return (1, $dir_account_total_fcuids, $imap_account_total_fcuids, \%missed_fcuids);
 }
