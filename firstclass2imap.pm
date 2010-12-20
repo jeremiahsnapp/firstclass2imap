@@ -275,7 +275,7 @@ sub migrate_folders {
 			foreach my $daterange (@$export_filter_date_ranges) {
 				my ($startdate, $enddate, $size) = @$daterange;
 
-				print print_timestamp() . " : Start Populating the migrate's inbox with email from Folder: \"$imap_folder\" for Date Range: \"$startdate\" to \"$enddate\" with Size: $size KB.\n";
+				print print_timestamp() . " : Start populating the migrate's inbox with email from Folder: \"$imap_folder\" for Date Range: \"$startdate\" to \"$enddate\" with Size: $size KB.\n";
 
 				my($matching_file_arrived, $matching_filename) = request_ba_import_script($fromuser, $fc_folder, $startdate, $enddate);
 
