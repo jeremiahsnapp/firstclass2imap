@@ -8,6 +8,7 @@ use Data::Dumper;
 
 use Email::Send;
 
+use Mail::Message;
 use Mail::Box::Manager;
 use Mail::IMAPClient;
 use MIME::Base64;
@@ -1147,6 +1148,26 @@ sub wait_for_matching_file_arrival {
                 }
         };
         return (0, "") if ($@ eq "Timedout\n");
+
+        # remove html part from body
+
+        open (FH, $filename);
+        my $msg = Mail::Message->read(\*FH);
+        close FH;
+
+        if ( $msg->isMultipart ) {
+            foreach my $part ( $msg->parts('RECURSE') ) {
+                if ( $part->contentType eq 'text/html' ) {
+                    $part->delete;
+#                    print print_timestamp() . " : Removed the HTML part of the emailed batch admin response.\n";
+                }
+            }
+        }
+
+        open(FH,'>', $filename);
+        $msg->print(\*FH);
+        close FH;
+
         return (1, $filename);
 }
 
