@@ -550,7 +550,6 @@ sub dir_imap_sync {
 	}
 	$pop_mailbox->close;
 	$imap_mailbox->close;
-	$imap->close;
 
 	return ($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update);
 }
