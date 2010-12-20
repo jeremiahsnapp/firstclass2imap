@@ -5,6 +5,8 @@ use strict;
 
 use DBI;
 use Data::Dumper;
+use File::Copy;
+use File::Basename;
 
 use Email::Send;
 use Mail::Message;
@@ -12,7 +14,7 @@ use Mail::Message;
 use List::Compare;
 use Date::Manip;
 
-my $dataDir = "/home/migrate/ba-rcvd/new/";
+my $dataDir = "/home/migrate/Maildir/.switched_user_rcvd/";
 my $timeout = 300;
 my $searchString = "BA Migrate Script: ";
 my $max_export_script_size = 20000;
@@ -124,14 +126,17 @@ sub email_to_batch_admin {
 sub wait_for_matching_file_arrival {
         my ($dataDir, $searchString, $timeout) = @_;
 
-        my @original_file_set = glob($dataDir . "*");
+        my $dataDirNew = $dataDir . 'new/';
+        my $dataDirCur = $dataDir . 'cur/';
+
+        my @original_file_set = glob($dataDirNew . "*");
 
         my $filename = eval {
                 local $SIG{ALRM} = sub { die "Timedout\n" }; # \n required
                 alarm $timeout;
 
                 while () {
-                        my @current_file_set = glob($dataDir . "*");
+                        my @current_file_set = glob($dataDirNew . "*");
 
                         my $lc = List::Compare->new(\@original_file_set, \@current_file_set);
 
@@ -141,7 +146,7 @@ sub wait_for_matching_file_arrival {
                                 while (<FH>) {
                                         if ( /$searchString/ ) {
                                                 alarm 0;
-                                                return $new_filename;
+                                                return basename($new_filename);
                                         }
                                 }
                         }
@@ -151,7 +156,7 @@ sub wait_for_matching_file_arrival {
 
         # remove html part from body
 
-        open (FH, $filename);
+        open (FH, $dataDirNew . $filename);
         my $msg = Mail::Message->read(\*FH);
         close FH;
 
@@ -164,11 +169,13 @@ sub wait_for_matching_file_arrival {
             }
         }
 
-        open(FH,'>', $filename);
+        open(FH,'>', $dataDirNew . $filename);
         $msg->print(\*FH);
         close FH;
 
-        return (1, $filename);
+        move($dataDirNew . $filename, $dataDirCur);
+
+        return (1, $dataDirCur . $filename);
 }
 
 sub print_timestamp {

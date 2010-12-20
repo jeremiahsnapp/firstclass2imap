@@ -9,8 +9,8 @@ use switch_users;
 use Date::Manip;
 
 my $my_timeout = 3000;
-my $my_rcvdDir = "/home/migrate/switched_user_rcvd/new/";
-my $my_sentDir = "/home/migrate/switched_user_sent/new/";
+my $my_rcvdDir = "/home/migrate/Maildir/.switched_user_rcvd/";
+my $my_sentDir = "/home/migrate/Maildir/.switched_user_sent/";
 my $my_searchString = "BA Migrate Script switched_user: ";
 my $my_max_export_script_size = 20000;
 my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';

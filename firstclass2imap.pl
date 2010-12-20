@@ -20,8 +20,8 @@ if (@ARGV != 1) {
 my $instance = shift(@ARGV);
 
 my $my_timeout = 3600;
-my $my_rcvdDir = "/home/migrate/ba" . $instance . "_rcvd/new/";
-my $my_sentDir = "/home/migrate/ba" . $instance . "_sent/new/";
+my $my_rcvdDir = "/home/migrate/Maildir/.ba_rcvd_$instance/";
+my $my_sentDir = "/home/migrate/Maildir/.ba_sent_$instance/";
 my $my_searchString = "BA Migrate Script " . $instance . ": ";
 my $my_migrate_user = "migrate" . $instance;
 my $my_migrate_password = "migrate" . $instance;
@@ -82,8 +82,8 @@ while ($count < 1) {
 	open(STDOUT, '>>', "/var/log/migration/$touser") or die "Can't redirect STDOUT: $!";
 	open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
 
-	system("find $my_rcvdDir -name '*' -type f -print0 | xargs -0 rm");
-	system("find $my_sentDir -name '*' -type f -print0 | xargs -0 rm");
+	system("rm -rf $my_rcvdDir");
+	system("rm -rf $my_sentDir");
 
 	$sth = $dbh->prepare ("UPDATE usermap SET migrating = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
 	if ($sth->execute( $fromuser, $touser, $fromfolder, $tofolder )) {

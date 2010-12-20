@@ -108,15 +108,10 @@ useradd -s /sbin/nologin migrate
 
 
 # make the necessary folders for filtered email
-mkdir /home/migrate/ba1_rcvd
-mkdir /home/migrate/ba1_sent
-mkdir /home/migrate/ba-rcvd
-mkdir /home/migrate/ba-sent
-mkdir /home/migrate/Maildir
-mkdir /home/migrate/switched_user_rcvd
-mkdir /home/migrate/switched_user_sent
-mkdir /home/migrate/build_usermap_rcvd
-mkdir /home/migrate/build_usermap_sent
+# the rest of the maildir folders will get automatically created by procmail as email is filtered into them
+mkdir -p /home/migrate/Maildir/{cur,new,tmp}
+chown -R migrate:migrate /home/migrate/Maildir/
+chmod -R 700 /home/migrate/Maildir/
 
 
 # forward all email sent to "migrate@migrate.schoolname.edu" to procmail for further processing
@@ -127,55 +122,101 @@ EOF
 
 # create a .procmailrc file for the migrate user that will filter email into appropriate folders
 cat > /home/migrate/.procmailrc <<EOF
+##Begin Filter Configuration
+
 LOGFILE=\$HOME/.procmail.log
 DEFAULT=\$HOME/Maildir/
 
-###Anywhere ''  '' .INBOX '' m '' on '' off ''  '' Contains
-##:0fw:
-##* .*
-##|sed -e 's/^To: .*@migrate\.schoolname\.edu,//'
-
-##Begin Filter Configuration
-#MAILDIR=\$HOME/Maildir/ # Default mail directory
-:0
-* ^Return-Path: <migrate@migrate.schoolname.edu>
-* ^Subject:.*BA Migrate Script:
-\$HOME/ba-sent/
-
-:0
-* ^Return-Path: <Batch_Admin@schoolname.edu>
-* ^Subject:.*BA Migrate Script:
-\$HOME/ba-rcvd/
+# Default mail directory
+MAILDIR=\$HOME/Maildir/
 
 :0
 * ^Return-Path: <migrate@migrate.schoolname.edu>
-* ^Subject:.*BA Migrate Script 1:
-\$HOME/ba1_sent/
+{
+        :0
+        * ^Subject:.*BA Migrate Script 1:
+        .ba_sent_1/
+
+        :0
+        * ^Subject:.*BA Migrate Script 2:
+        .ba_sent_2/
+
+        :0
+        * ^Subject:.*BA Migrate Script 3:
+        .ba_sent_3/
+
+        :0
+        * ^Subject:.*BA Migrate Script 4:
+        .ba_sent_4/
+
+        :0
+        * ^Subject:.*BA Migrate Script 5:
+        .ba_sent_5/
+
+        :0
+        * ^Subject:.*BA Migrate Script 6:
+        .ba_sent_6/
+
+        :0
+        * ^Subject:.*BA Migrate Script 7:
+        .ba_sent_7/
+
+        :0
+        * ^Subject:.*BA Migrate Script 8:
+        .ba_sent_8/
+
+        :0
+        * ^Subject:.*BA Migrate Script Usermap:
+        .build_usermap_sent/
+
+        :0
+        * ^Subject:.*BA Migrate Script switched_user:
+        .switched_user_sent/
+}
 
 :0
-* ^Return-Path: <Batch_Admin@schoolname.edu>
-* ^Subject:.*BA Migrate Script 1:
-\$HOME/ba1_rcvd/
+* ^Return-Path: <administrator@schoolname.edu>
+{
+        :0
+        * ^Subject:.*BA Migrate Script 1:
+        .ba_rcvd_1/
 
-:0
-* ^Return-Path: <migrate@migrate.schoolname.edu>
-* ^Subject:.*BA Migrate Script Usermap:
-\$HOME/build_usermap_sent/
+        :0
+        * ^Subject:.*BA Migrate Script 2:
+        .ba_rcvd_2/
 
-:0
-* ^Return-Path: <Batch_Admin@schoolname.edu>
-* ^Subject:.*BA Migrate Script Usermap:
-\$HOME/build_usermap_rcvd/
+        :0
+        * ^Subject:.*BA Migrate Script 3:
+        .ba_rcvd_3/
 
-:0
-* ^Return-Path: <migrate@migrate.schoolname.edu>
-* ^Subject:.*BA Migrate Script switched_user:
-\$HOME/switched_user_sent/
+        :0
+        * ^Subject:.*BA Migrate Script 4:
+        .ba_rcvd_4/
 
-:0
-* ^Return-Path: <Batch_Admin@schoolname.edu>
-* ^Subject:.*BA Migrate Script switched_user:
-\$HOME/switched_user_rcvd/
+        :0
+        * ^Subject:.*BA Migrate Script 5:
+        .ba_rcvd_5/
+
+        :0
+        * ^Subject:.*BA Migrate Script 6:
+        .ba_rcvd_6/
+
+        :0
+        * ^Subject:.*BA Migrate Script 7:
+        .ba_rcvd_7/
+
+        :0
+        * ^Subject:.*BA Migrate Script 8:
+        .ba_rcvd_8/
+
+        :0
+        * ^Subject:.*BA Migrate Script Usermap:
+        .build_usermap_rcvd/
+
+        :0
+        * ^Subject:.*BA Migrate Script switched_user:
+        .switched_user_rcvd/
+}
 
 ##End Filter Configuration
 EOF

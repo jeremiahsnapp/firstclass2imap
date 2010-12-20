@@ -11,8 +11,8 @@ use build_usermap;
 
 my $my_list_of_users_filename = "";
 
-my $my_rcvdDir = "/home/migrate/build_usermap_rcvd/new/";
-my $my_sentDir = "/home/migrate/build_usermap_sent/new/";
+my $my_rcvdDir = "/home/migrate/Maildir/.build_usermap_rcvd/";
+my $my_sentDir = "/home/migrate/Maildir/.build_usermap_sent/";
 my $my_timeout = 300;
 my $my_searchString = "BA Migrate Script Usermap: ";
 my $my_max_export_script_size = 20000;
@@ -24,7 +24,7 @@ my $my_to_ip_address = '192.168.1.26';
 
 build_usermap::initialize($my_list_of_users_filename, $my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_to_ip_address);
 
-system("rm $my_rcvdDir*");
-system("rm $my_sentDir*");
+system("rm -rf $my_rcvdDir");
+system("rm -rf $my_sentDir");
 
 build_usermap::build_usermap();
