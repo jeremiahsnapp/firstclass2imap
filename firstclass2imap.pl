@@ -76,6 +76,8 @@ while ($count < 1) {
 
 	$sth->fetchrow_hashref;
 
+        $sth->finish;
+
 ###	# you can override recursive migration here
 ###	$recursive = 0;
 
@@ -87,6 +89,7 @@ while ($count < 1) {
 
 	$sth = $dbh->prepare ("UPDATE usermap SET migrating = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
 	if ($sth->execute( $fromuser, $touser, $fromfolder, $tofolder )) {
+                $sth->finish;
 		my($migrated_folder_structure, $migrated_folders, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids) = (0, 0, 0, 0, 0, 0);
 		my ($missed_folders_count, $missed_fcuids_count) = (0, 0);
 		my $missed_folders;
@@ -100,6 +103,7 @@ while ($count < 1) {
 		if (!$migrated_folder_structure) {
 			$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, broken = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
                         $sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
+                        $sth->finish;
 
 			$count++;
 			next;
@@ -119,10 +123,12 @@ while ($count < 1) {
 
 			$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), duration = ?, fc_folder_count = ?, destination_folder_count = ?, fc_fcuid_count = ?, destination_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
 			$sth->execute( $elapsed_time_secs, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder, $tofolder );
+                        $sth->finish;
 
 			if ( ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
 				$sth = $dbh->prepare ("UPDATE usermap SET migration_complete = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
 				$sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
+                                $sth->finish;
 			}
 		}
 
@@ -130,6 +136,7 @@ while ($count < 1) {
 
 		$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
 		$sth->execute( $migrated, $fromuser, $touser, $fromfolder, $tofolder );
+                $sth->finish;
 
 		if ($migrated_folder_structure && $migrated_folders) {
 			my $from_address = "$migration_notification_email_address";
@@ -173,6 +180,7 @@ while ($count < 1) {
 			firstclass2imap::email_user_notification($from_address, $tohost, $to_address, $subject, @body);
 		}
 	}
+        $sth->finish;
 	$count++;
 }
 

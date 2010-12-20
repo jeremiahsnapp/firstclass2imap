@@ -110,6 +110,8 @@ sub build_usermap {
 
 				my($row_exists) = $sth->fetch;
 
+                                $sth->finish;
+
 				if ( @$row_exists[0] ) {
                                         print print_timestamp() . " : fromuser: $fromuser is a 'manual' entry in the database so don't modify the record.\n";
                                         next;
@@ -121,19 +123,27 @@ sub build_usermap {
 
 				$row_exists = $sth->fetch;
 
+                                $sth->finish;
+
 				# if a row already exists for this user then update the row
 				if ( @$row_exists[0] ) {
 	                	        $sth = $dbh->prepare ("UPDATE usermap SET tohost = ?, topassword = ?, account_size = ? WHERE fromuser = ? AND touser = ? AND manual = 0");
 	        	                $sth->execute( $fromuser_hash{$fromuser}{'tohost'}, $fromuser_hash{$fromuser}{'topassword'}, $fromuser_hash{$fromuser}{'size'}, $fromuser, $fromuser_hash{$fromuser}{'touser'} )
 						or die "Couldn't execute UPDATE statement: " . $sth->errstr;
-		                        print print_timestamp() . " : Updated fromuser: $fromuser in the database\n";
+
+                                        $sth->finish;
+
+					print print_timestamp() . " : Updated fromuser: $fromuser in the database\n";
 				}
 				# if row does not already exist for this user then create a new row
 				else {
 		                        $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, account_size ) VALUE ( 1, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?, ? )");
 		                        $sth->execute( $fromhost, $fromuser, $fromfolder, $fromuser_hash{$fromuser}{"tohost"}, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $tofolder, $recursive, $fromuser_hash{$fromuser}{'size'}) 
 						or die "Couldn't execute INSERT statement: " . $sth->errstr;
-		                        print print_timestamp() . " : Inserted fromuser: $fromuser \t touser: $fromuser_hash{$fromuser}{'touser'} in the database\n";
+
+                                        $sth->finish;
+
+					print print_timestamp() . " : Inserted fromuser: $fromuser \t touser: $fromuser_hash{$fromuser}{'touser'} in the database\n";
 				}
 			}
                         else {
@@ -164,11 +174,13 @@ sub build_usermap {
 				print print_timestamp() . " : Deleted fromuser: $fromuser \t touser: $touser in the database\n";
 			}
 	        }
+                $sth->finish;
 #	        foreach $fromuser (sort(keys(%usermap_hash))) {
 #	                if ( ! exists($fromuser_hash{$fromuser}{'touser'}) || ( ($usermap_hash{$fromuser}{'touser'} ne $fromuser_hash{$fromuser}{'touser'}) &&  ($usermap_hash{$fromuser}{'tohost'} ne $fromuser_hash{$fromuser}{'tohost'}) ) ) {
 #                        	$sth = $dbh->prepare("DELETE FROM usermap WHERE fromuser = ? AND touser = ? AND manual = 0");
 #                	        $sth->execute($fromuser, $usermap_hash{$fromuser}{'touser'})
 #        	                        or die "Couldn't execute DELETE statement: " . $sth->errstr;
+#                                $sth->finish;
 #				print print_timestamp() . " : Deleted fromuser: $fromuser \t touser: $usermap_hash{$fromuser}{'touser'}\n";
 #	                }
 #	        }

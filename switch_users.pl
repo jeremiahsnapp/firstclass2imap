@@ -43,6 +43,7 @@ while ($count < 200) {
 	$sth->bind_columns (\$switch, \$switched, \$fromhost, \$fromuser, \$tohost, \$touser);
 
 	$sth->fetchrow_hashref;
+        $sth->finish;
 
 	open(STDOUT, '>>', "/var/log/migration/switch_user") or die "Can't redirect STDOUT: $!";
 	open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
@@ -55,6 +56,7 @@ while ($count < 200) {
 	if ($switched) {
 		$sth = $dbh->prepare ("UPDATE usermap SET switched = 1 WHERE fromuser = ? AND touser = ? LIMIT 1");
 		$sth->execute( $fromuser, $touser );
+                $sth->finish;
 	}
 
 	($elapsed_time, $lasttime, $elapsed_time_secs) = elapsed_time($starttime);
