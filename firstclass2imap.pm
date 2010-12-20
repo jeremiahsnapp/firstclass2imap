@@ -1237,7 +1237,7 @@ sub create_imap_client {
 
         my $imap;
 
-        my $port = "143";
+        my $port = $to_imaps ? "993" : "143";
         my $authuser = $user;
         my $authmech = "PLAIN";
 
@@ -1252,34 +1252,18 @@ sub create_imap_client {
                 $password = $to_authuser_password;
         }
 
-        if ($to_imaps) {
-                $port = "993";
+###$debugimap = 1;
+        $imap = Mail::IMAPClient->new(
+                    Clear => (20),
+                    Server => ($host),
+                    Port => ($port),
+                    Uid => (1),
+                    Peek => (1),
+                    Debug => ($debugimap),
+                    Buffer => (4096),
+                    Ssl => ($to_imaps)
+                );
 
-                require IO::Socket::SSL;
-                my $socssl = new IO::Socket::SSL("$host:$port");
-                die "Error connecting to $host:$port: $@\n" unless $socssl;
-                $socssl->autoflush(1);
-
-                $imap = Mail::IMAPClient->new( Socket => $socssl, Server => $host );
-        }
-        else {
-                $imap = Mail::IMAPClient->new();
-        }
-
-        $imap->Clear(20);
-        $imap->Server($host);
-        $imap->Port($port);
-        $imap->Uid(1);
-        $imap->Peek(1);
-        $imap->Debug($debugimap);
-        $imap->Buffer(4096);
-
-        if ($to_imaps) {
-                $imap->State(Mail::IMAPClient::Connected);
-        }
-        else {
-                $imap->connect() or die "Can not open imap connection on [$host] with user [$user] : $@\n";
-        }
         $debugimap && print print_timestamp() . " : IMAP Connected: " . ($imap->IsConnected ? "True" : "False") . "\n";
 
         $imap->Authmechanism($authmech);
