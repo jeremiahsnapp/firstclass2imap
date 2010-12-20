@@ -1239,7 +1239,9 @@ sub create_imap_client {
 
         my $port = $to_imaps ? "993" : "143";
         my $authuser = $user;
-        my $authmech = "PLAIN";
+
+        # gmail does not allow PLAIN mechanism so use LOGIN
+        my $authmech = "LOGIN";
 
 # if the imap server is the firstclass server then use CRAM-MD5
         if ($host eq $fc_ip_address) {
