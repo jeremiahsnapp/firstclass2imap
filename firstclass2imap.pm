@@ -990,19 +990,28 @@ sub get_export_filter_date_ranges {
                 open (FH, $matching_filename);
                 foreach my $line (<FH>) {
                         if ($line =~ /\[L:\d+\]\s+"(.*)"\s+"(.*)"\s+(\d{4}\/\d{2}\/\d{2})\s+(\d{2}:\d{2}:\d{2})\s+(\d+)\s+kb\s+(\S+)$/) {
-				my $fc_timestamp = UnixDate($3 . " " . $4,"%s") - 2212140496;
+
+                                my $item_name = $1;
+                                my $item_subject = $2;
+                                my $item_date = $3;
+                                my $item_time = $4;
+                                my $item_size = $5;
+                                my $fcuid = $6;
+
+                                my $fc_timestamp = UnixDate($item_date . " " . $item_time,"%s") - 2212140496;
 ### 2212136896;     i changed this on 12/8/08 because it seemed all my calc's were off by an hour...
 
-				my $fcuid = "$6|$fc_timestamp";
-                                $date{$3}{'size'} += $5;
-				$folder_total_size += $5;
-                                $date{$3}{'migrate'} = 0;
-				$sync_fcuids{$fcuid}{'folder'} = $fromfolder;
-				$sync_fcuids{$fcuid}{'name'} = $1;
-				$sync_fcuids{$fcuid}{'subject'} = $2;
-				$sync_fcuids{$fcuid}{'date'} = $3;
-				$sync_fcuids{$fcuid}{'time'} = $4;
-				$sync_fcuids{$fcuid}{'action'} = "skip";
+                                $fcuid .= "|$fc_timestamp";
+
+                                $date{$item_date}{'size'} += $item_size;
+                                $folder_total_size += $item_size;
+                                $date{$item_date}{'migrate'} = 0;
+                                $sync_fcuids{$fcuid}{'folder'} = $fromfolder;
+                                $sync_fcuids{$fcuid}{'name'} = $item_name;
+                                $sync_fcuids{$fcuid}{'subject'} = $item_subject;
+                                $sync_fcuids{$fcuid}{'date'} = $item_date;
+                                $sync_fcuids{$fcuid}{'time'} = $item_time;
+                                $sync_fcuids{$fcuid}{'action'} = "skip";
                         }
                 }
 		close (FH);
