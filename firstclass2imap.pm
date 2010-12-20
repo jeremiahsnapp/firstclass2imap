@@ -755,7 +755,7 @@ sub request_ba_import_script {
         # the following Batch Admin command returns an import script for the user's folder
         # this import script will only import a specified number of days worth of email
         # in order to not overwhelm the servers which would basically prevent us from migrating
-        push (@ba_script_body, "SETEXPORTFILTERS modified \"$startdate\" \"$enddate\" +D\n");
+        push (@ba_script_body, "SETEXPORTFILTERS modified after $startdate 00:00:00 modified before $enddate 00:00:00 +d\n");
         push (@ba_script_body, "EXPORT DESKTOP $fromuser \"$fromfolder\"\n");
 
         email_to_batch_admin ($ba_script_subject, \@ba_script_body);
