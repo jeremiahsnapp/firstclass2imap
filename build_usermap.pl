@@ -13,7 +13,7 @@ my $my_list_of_users_filename = "";
 
 my $my_rcvdDir = "/home/migrate/Maildir/.build_usermap_rcvd/";
 my $my_sentDir = "/home/migrate/Maildir/.build_usermap_sent/";
-my $my_timeout = 300;
+my $my_timeout = 900;
 my $my_searchString = "BA Migrate Script Usermap: ";
 my $my_max_export_script_size = 20000;
 my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';

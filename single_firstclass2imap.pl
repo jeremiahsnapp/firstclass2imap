@@ -30,7 +30,7 @@ if ( grep(/firstclass2imap.pl\s+$instance/, @procs) > 1 ) {
     exit();
 }
 
-my $my_timeout = 3600;
+my $my_timeout = 900;
 my $my_rcvdDir = "/home/migrate/Maildir/.ba_rcvd_$instance/";
 my $my_sentDir = "/home/migrate/Maildir/.ba_sent_$instance/";
 my $my_searchString = "BA Migrate Script $instance: ";

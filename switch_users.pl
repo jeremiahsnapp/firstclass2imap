@@ -8,7 +8,7 @@ use DBI;
 use switch_users;
 use Date::Manip;
 
-my $my_timeout = 3000;
+my $my_timeout = 900;
 my $my_rcvdDir = "/home/migrate/Maildir/.switched_user_rcvd/";
 my $my_sentDir = "/home/migrate/Maildir/.switched_user_sent/";
 my $my_searchString = "BA Migrate Script switched_user: ";
