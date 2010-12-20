@@ -54,8 +54,10 @@ mysql -u root -p migrate < usermap.sql
 --------------------------------------------------------------------------
 
 # Ubuntu - install perl modules needed for the migration script
-sudo apt-get install liblist-compare-perl libhash-case-perl libdate-manip-perl libemail-send-perl libobject-realize-later-perl libmail-box-perl libmail-imapclient-perl libmime-types-perl libtimedate-perl
+sudo apt-get install liblist-compare-perl libhash-case-perl libdate-manip-perl libemail-send-perl libnet-smtp-ssl-perl libobject-realize-later-perl libmail-box-perl libmail-imapclient-perl libmime-types-perl libtimedate-perl
 
+# Install tools useful for testing and management of the migration
+sudo apt-get install tmux tree mutt cyrus-clients-2.2 git-core
 
 # patch the perl List::Compare module so it can do case insensitive comparisons
 sudo apt-get install patch
