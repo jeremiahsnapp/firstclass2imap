@@ -35,20 +35,20 @@ sub initialize {
 	$domain = $my_domain;
 }
 
-sub switch_user_to_zimbra {
+sub switch_user_to_destination {
 	my($fromuser, $touser) = @_;
 
         my($ba_script_subject) = $searchString . "Disable User Account: $fromuser";
 
         my @ba_script_body = "";
 
-        # the following Batch Admin script adds the user to the "Migrated_To_Zimbra" group in First Class
+        # the following Batch Admin script adds the user to the "Migrated_To_Destination" group in First Class
 	# this group's permissions are very restricted effectively allowing the user to access their First Class account
 	# and receive email but disabling their ability to create anything
-	# This script also creates a redirect mail rule that redirects any incoming email to their new Zimbra email address
+	# This script also creates a redirect mail rule that redirects any incoming email to their new destination email address
         push (@ba_script_body, "REPLY\n");
         push (@ba_script_body, "PUT USER $fromuser 1216 6 0\n");
-        push (@ba_script_body, "PGADD $fromuser Migrated_To_Zimbra\n");
+        push (@ba_script_body, "PGADD $fromuser Migrated_To_Destination\n");
         push (@ba_script_body, "SetBase desktop $fromuser \"Mailbox\"\n");
         push (@ba_script_body, "SetRelative FromBase Path \"\"\n");
         push (@ba_script_body, "New Relative \"\" \"Migration Rule\" \"\" FormDoc 23047 0 0 23 23 -U+X\n");

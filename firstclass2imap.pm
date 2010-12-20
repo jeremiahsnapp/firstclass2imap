@@ -53,9 +53,9 @@ sub initialize {
 }
 
 sub migrate_folder_structure {
-	my($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_zimbra) = @_;
+	my($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination) = @_;
 
-	print print_timestamp() . " : Start Migrating Folder Structure for Account: \"$touser\" with" . ($delete_from_zimbra?" ":"out ") . "deletion from zimbra\n";
+	print print_timestamp() . " : Start Migrating Folder Structure for Account: \"$touser\" with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
 
 	my($fc_total_folders, $imap_created_folders, $imap_deleted_folders, $imap_total_folders) = (0, 0, 0, 0);
 	
@@ -99,7 +99,7 @@ sub migrate_folder_structure {
 	my(@to_folders_list) = get_imap_folders_list($tohost, $touser, $topassword, $tofolder, $recursive);
 
 	if (!@to_folders_list) {
-		print print_timestamp() . " : Failed to get list of Zimbra folders for Account: $touser\n";
+		print print_timestamp() . " : Failed to get list of destination folders for Account: $touser\n";
 		print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $touser\n";
 		return 0;
 	}
@@ -125,7 +125,7 @@ sub migrate_folder_structure {
 		}
 	} 
 
-	if ($delete_from_zimbra) {
+	if ($delete_from_destination) {
 		foreach my $imap_folder (sort({ lc($b) cmp lc($a) } $lc->get_Ronly)) {
 			print print_timestamp() . " : Deleting Folder: $imap_folder\n";
 
@@ -159,10 +159,10 @@ sub migrate_folder_structure {
         print "Total Folders: \t\t " . $fc_total_folders . "\t   " . $imap_total_folders . "\n";
 
 	if ($missed_folders_count) {
-		print $missed_folders_count . " FirstClass folder(s) did NOT successfully migrate to Zimbra\n";
+		print $missed_folders_count . " FirstClass folder(s) did NOT successfully migrate to destination\n";
 	}
 	else {
-		print "All of FirstClass's folder structure has successfully been migrated to Zimbra\n";
+		print "All of FirstClass's folder structure has successfully been migrated to destination\n";
 	}
 
 	($elapsed_time, $lasttime) = elapsed_time($starttime);
@@ -172,7 +172,7 @@ sub migrate_folder_structure {
 }
 
 sub migrate_folders {
-	my($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_zimbra, $force_update_all_email) = @_;
+	my($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email) = @_;
 
 	print print_timestamp() . " : Start Migrating Folders for Account: $touser\n";
 
@@ -219,7 +219,7 @@ sub migrate_folders {
 	foreach my $fc_folder (@from_folders_list) {
 		my $imap_folder = convert_folder_names_fc_to_imap($fc_folder);
 
-		print print_timestamp() . " : Start Migrating Folder: $imap_folder with" . ($delete_from_zimbra?" ":"out ") . "deletion from zimbra\n";
+		print print_timestamp() . " : Start Migrating Folder: $imap_folder with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
 
 		my($folder_missed_fcuids_count, $dir_folder_skip, $dir_folder_append, $dir_folder_delete, $dir_folder_update, $dir_folder_total_fcuids) = (0, 0, 0, 0, 0, 0);
 		my($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update, $imap_folder_total_fcuids) = (0, 0, 0, 0, 0);
@@ -244,7 +244,7 @@ sub migrate_folders {
 		foreach my $fcuid (keys(%$sync_fcuids)) {
 			$dir_folder_skip++ if ($sync_fcuids->{$fcuid}->{'action'} eq "skip");
 			$dir_folder_append++ if ($sync_fcuids->{$fcuid}->{'action'} eq "append");
-			$dir_folder_delete++ if ( $delete_from_zimbra && ($sync_fcuids->{$fcuid}->{'action'} eq "delete") );
+			$dir_folder_delete++ if ( $delete_from_destination && ($sync_fcuids->{$fcuid}->{'action'} eq "delete") );
 			$dir_folder_update++ if ($sync_fcuids->{$fcuid}->{'action'} eq "update");
 			push(@dir_fcuids, $fcuid);
 		}
@@ -300,7 +300,7 @@ sub migrate_folders {
 				}
 			}
 			print print_timestamp() . " : Start syncing email.\n";
-			($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = dir_imap_sync($fromhost, $fromuser, $tohost, $touser, $topassword, $imap_folder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_zimbra);
+			($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = dir_imap_sync($fromhost, $fromuser, $tohost, $touser, $topassword, $imap_folder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_destination);
 			print print_timestamp() . " : Finished syncing email.\n";
 		}
 	    }
@@ -368,7 +368,7 @@ sub migrate_folders {
 		print "Total FC-UID's: \t $dir_folder_total_fcuids \t    $imap_folder_total_fcuids\n";
 
 		if ( $folder_missed_fcuids_count ) {
-			print $folder_missed_fcuids_count . " FC-Unique-ID('s) in FC's folder did NOT successfully migrate to the Zimbra folder.\n";
+			print $folder_missed_fcuids_count . " FC-Unique-ID('s) in FC's folder did NOT successfully migrate to the destination folder.\n";
 		}
 		foreach my $daterange (@$days_skipped) {
 			my ($skippeddate, $size) = @$daterange;
@@ -391,7 +391,7 @@ sub migrate_folders {
 	print "Total FC-UID's: \t $dir_account_total_fcuids \t    $imap_account_total_fcuids\n";
 
 	if ( $account_missed_fcuids_count ) {
-		print $account_missed_fcuids_count . " FC-Unique-ID('s) in FC's account did NOT successfully migrate to the Zimbra account.\n";
+		print $account_missed_fcuids_count . " FC-Unique-ID('s) in FC's account did NOT successfully migrate to the destination account.\n";
 	}
 	print "End of Report for all of $touser\'s folders.\n";
 
@@ -402,7 +402,7 @@ sub migrate_folders {
 }
 
 sub dir_imap_sync {
-	my ($fromhost, $fromuser, $tohost, $touser, $topassword, $tofolder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_zimbra) = @_;
+	my ($fromhost, $fromuser, $tohost, $touser, $topassword, $tofolder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_destination) = @_;
 
 	my($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = (0, 0, 0, 0);
 
@@ -423,7 +423,7 @@ sub dir_imap_sync {
 
 	foreach my $fcuid (sort { if (($sync_fcuids->{$a}->{'action'} ne "delete") && ($sync_fcuids->{$b}->{'action'} ne "delete")) {str2time($sync_fcuids->{$a}->{'date'} . " " . $sync_fcuids->{$a}->{'time'}) <=> str2time($sync_fcuids->{$b}->{'date'} . " " . $sync_fcuids->{$b}->{'time'})} } (keys(%$sync_fcuids))) {
 
-		if ($delete_from_zimbra && ($sync_fcuids->{$fcuid}->{'action'} eq "delete") ) {
+		if ($delete_from_destination && ($sync_fcuids->{$fcuid}->{'action'} eq "delete") ) {
 			print print_timestamp() . " : IMAP Deleting from Folder: \"$tofolder\" \t Email: " . $fcuid . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
 
 			if ($dry_run) { next; }
@@ -462,7 +462,7 @@ sub dir_imap_sync {
 						}
 					}
 
-					# the MIME::Type module returns "x-msword" for ".doc" attachments but zimbra won't recognize that and
+					# the MIME::Type module returns "x-msword" for ".doc" attachments but destination won't recognize that and
 					# put the appropriate icon next to the attachment so we substitute "msword" for "x-msword"
 					$mediatype =~ s/\/x-msword$/\/msword/g;
 
@@ -516,7 +516,7 @@ sub dir_imap_sync {
 						}
 					}
 
-					# the MIME::Type module returns "x-msword" for ".doc" attachments but zimbra won't recognize that and
+					# the MIME::Type module returns "x-msword" for ".doc" attachments but destination won't recognize that and
 					# put the appropriate icon next to the attachment so we substitute "msword" for "x-msword"
 					$mediatype =~ s/\/x-msword$/\/msword/g;
 
@@ -580,12 +580,12 @@ sub fc_folder_exists {
 sub convert_folder_names_fc_to_imap {
         my($fc_folder) = @_;
 
-	$fc_folder =~ s/\s+:/:/;		# remove trailing whitespace in a first class folder's name since zimbra folder names don't allow for it
-	$fc_folder =~ s/\s+$//;			# remove trailing whitespace in a first class folder's name since zimbra folder names don't allow for it
+	$fc_folder =~ s/\s+:/:/;		# remove trailing whitespace in a first class folder's name since destination folder names don't allow for it
+	$fc_folder =~ s/\s+$//;			# remove trailing whitespace in a first class folder's name since destination folder names don't allow for it
 
         $fc_folder =~ s/&/&-/g;			# enables &'s to be used in folder names
         $fc_folder =~ s/\//\\/g;
-        $fc_folder =~ s/:/\//g;			# First Class uses ':' in a folder path but Zimbra uses '/' so we make the conversion here
+        $fc_folder =~ s/:/\//g;			# First Class uses ':' in a folder path but destination uses '/' so we make the conversion here
         $fc_folder =~ s/\/\\/\//g;
 #        $fc_folder =~ s/\\/\\\\/g;
         $fc_folder =~ s/\?/\|/g;
@@ -663,12 +663,12 @@ sub get_fixed_fc_subfolders {
 
 				if ( ($1 eq "B") && !$aliases{$item_index} ) {
 					# if a First Class folder has a ':' in its name then batch admin scripts will get messed up since First Class uses the ':' in a folder's path
-					# the same way zimbra uses the '/' in a folder's path so we substitute the ':' with a '|' and rename the First Class folder
-					# zimbra does not allow a ':' in its folder names anyway so this fixes that too
+					# the same way destination uses the '/' in a folder's path so we substitute the ':' with a '|' and rename the First Class folder
+					# destination does not allow a ':' in its folder names anyway so this fixes that too
 					$item_name =~ s/:/\|/g;
 
 					# if a First Class folder has a '"' in its name then batch admin scripts will get messed up so we substitute '"' with a ''' and rename the First Class folder
-					# zimbra does not allow a '"' in its folder names anyway so this fixes that too
+					# destination does not allow a '"' in its folder names anyway so this fixes that too
 					$item_name =~ s/"/'/g;
 
 					# the following code makes sure that all folder names at a given level in a First Class mailbox are unique

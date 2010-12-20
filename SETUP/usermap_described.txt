@@ -38,11 +38,11 @@
 	total elapsed time in seconds spent migrating this account
   `fc_folder_count` int(11) NOT NULL default '0',
 	number of folders this account has in firstclass
-  `zimbra_folder_count` int(11) NOT NULL default '0',
+  `destination_folder_count` int(11) NOT NULL default '0',
 	number of corresponding folders this account has in new email system
   `fc_fcuid_count` int(11) NOT NULL default '0',
 	number of firstclass items (email, uploaded files, etc) on the firstclass server
-  `zimbra_fcuid_count` int(11) NOT NULL default '0',
+  `destination_fcuid_count` int(11) NOT NULL default '0',
 	number of firstclass items (email, uploaded files, etc) found on the new email server
   `missed_folders_count` int(11) NOT NULL default '0',
 	number of firstclass folders that are missing on the new email server

@@ -31,9 +31,9 @@ CREATE TABLE IF NOT EXISTS `usermap` (
   `time_migrated` timestamp NULL default NULL,
   `duration` int(11) NOT NULL default '0',
   `fc_folder_count` int(11) NOT NULL default '0',
-  `zimbra_folder_count` int(11) NOT NULL default '0',
+  `destination_folder_count` int(11) NOT NULL default '0',
   `fc_fcuid_count` int(11) NOT NULL default '0',
-  `zimbra_fcuid_count` int(11) NOT NULL default '0',
+  `destination_fcuid_count` int(11) NOT NULL default '0',
   `missed_folders_count` int(11) NOT NULL default '0',
   `missed_fcuids_count` int(11) NOT NULL default '0',
   `account_size` int(11) NOT NULL default '0'

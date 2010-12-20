@@ -50,7 +50,7 @@ while ($count < 200) {
 	system("rm $my_rcvdDir*");
 	system("rm $my_sentDir*");
 
-	$switched = switch_users::switch_user_to_zimbra($fromuser, $touser);
+	$switched = switch_users::switch_user_to_destination($fromuser, $touser);
 
 	if ($switched) {
 		$sth = $dbh->prepare ("UPDATE usermap SET switched = 1 WHERE fromuser = ? AND touser = ? LIMIT 1");

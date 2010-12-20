@@ -87,15 +87,15 @@ while ($count < 1) {
 
 	$sth = $dbh->prepare ("UPDATE usermap SET migrating = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
 	if ($sth->execute( $fromuser, $touser, $fromfolder, $tofolder )) {
-		my($migrated_folder_structure, $migrated_folders, $fc_folder_count, $zimbra_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids) = (0, 0, 0, 0, 0, 0);
+		my($migrated_folder_structure, $migrated_folders, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids) = (0, 0, 0, 0, 0, 0);
 		my ($missed_folders_count, $missed_fcuids_count) = (0, 0);
 		my $missed_folders;
 		my $missed_fcuids;
 
-		my $delete_from_zimbra = 0;
-###		$delete_from_zimbra = 1 if (!$switched);
+		my $delete_from_destination = 0;
+###		$delete_from_destination = 1 if (!$switched);
 
-		($migrated_folder_structure, $fc_folder_count, $zimbra_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_zimbra);
+		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination);
 
 		if (!$migrated_folder_structure) {
 			$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, broken = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
@@ -105,7 +105,7 @@ while ($count < 1) {
 			next;
 		}
 
-		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_zimbra, $force_update_all_email);
+		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email);
 
 		if ($migrated_folder_structure && $migrated_folders) {
 			$missed_folders_count = @$missed_folders;
@@ -117,8 +117,8 @@ while ($count < 1) {
 
 			($elapsed_time, $lasttime, $elapsed_time_secs) = elapsed_time($starttime);
 
-			$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), duration = ?, fc_folder_count = ?, zimbra_folder_count = ?, fc_fcuid_count = ?, zimbra_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-			$sth->execute( $elapsed_time_secs, $fc_folder_count, $zimbra_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder, $tofolder );
+			$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), duration = ?, fc_folder_count = ?, destination_folder_count = ?, fc_fcuid_count = ?, destination_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
+			$sth->execute( $elapsed_time_secs, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder, $tofolder );
 
 			if ( ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
 				$sth = $dbh->prepare ("UPDATE usermap SET migration_complete = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
@@ -193,14 +193,14 @@ sub pretty_print {
 	}
 
 	if ( ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
-		push(@pretty, "Our records indicate that all of your FirstClass folders and their content were successfully migrated to your new Zimbra account.\n\n");
+		push(@pretty, "Our records indicate that all of your FirstClass folders and their content were successfully migrated to your new destination account.\n\n");
 		push(@pretty, "If you have any questions please reply to this email.\n\n");
 		push(@pretty, "Thank you.\n\n");
 
 		return @pretty;
 	}
 
-	push(@pretty, "Our records indicate that the following FirstClass folders and their content were NOT successfully migrated to your new Zimbra account.\n\n");
+	push(@pretty, "Our records indicate that the following FirstClass folders and their content were NOT successfully migrated to your new destination account.\n\n");
 	push(@pretty, "If you have any questions please reply to this email.\n\n");
 	push(@pretty, "Thank you.\n\n");
 
