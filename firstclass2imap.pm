@@ -93,6 +93,9 @@ sub migrate_folder_structure {
 		}
 		push(@from_folders_list, @temp_from_folders);
 	}
+        # this code is capable of removing folders from the list of folders to be migrated
+        # we don't really need this now but the code will be kept in case of future need
+#        @from_folders_list = grep(!/^mailbox$/i, @from_folders_list);
 
 	my(@from_folders_list_converted);
 	foreach my $from_folder (@from_folders_list) {
@@ -215,6 +218,9 @@ sub migrate_folders {
 		}
 		push(@from_folders_list, @temp_from_folders);
 	}
+        # this code is capable of removing folders from the list of folders to be migrated
+        # we don't really need this now but the code will be kept in case of future need
+#        @from_folders_list = grep(!/^mailbox$/i, @from_folders_list);
 
 	($elapsed_time, $lasttime) = elapsed_time($lasttime);
 	print print_timestamp() . " : Elapsed Time: $elapsed_time\n";
