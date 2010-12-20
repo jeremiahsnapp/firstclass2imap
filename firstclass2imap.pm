@@ -475,8 +475,9 @@ sub dir_imap_sync {
 					# put the appropriate icon next to the attachment so we substitute "msword" for "x-msword"
 					$mediatype =~ s/\/x-msword$/\/msword/g;
 
-					$pop_msg =~ s/Content-Type:\s*(\S*)\s*name="$attachment_number"(.*)/Content-Type: $mediatype; "$attachment_name"$2/g;
-					$pop_msg =~ s/(Content-Disposition:.*filename=")$attachment_number"/$1$attachment_name"/g;
+                                        if ( $pop_msg =~ s/Content-Type:\s*(\S*)\s*name="$attachment_number"(.*)/Content-Type: $mediatype; "$attachment_name"$2/g ) {
+                                                $pop_msg =~ s/(Content-Disposition:.*filename=")$attachment_number"/$1$attachment_name"/g;
+                                        }
 				}
 
 				if ($imap->append_string("$tofolder", 
@@ -529,8 +530,9 @@ sub dir_imap_sync {
 					# put the appropriate icon next to the attachment so we substitute "msword" for "x-msword"
 					$mediatype =~ s/\/x-msword$/\/msword/g;
 
-					$pop_msg =~ s/Content-Type:\s*(\S*)\s*name="$attachment_number"(.*)/Content-Type: $mediatype; "$attachment_name"$2/g;
-					$pop_msg =~ s/(Content-Disposition:.*filename=")$attachment_number"/$1$attachment_name"/g;
+                                        if ( $pop_msg =~ s/Content-Type:\s*(\S*)\s*name="$attachment_number"(.*)/Content-Type: $mediatype; "$attachment_name"$2/g ) {
+                                                $pop_msg =~ s/(Content-Disposition:.*filename=")$attachment_number"/$1$attachment_name"/g;
+                                        }
 				}
 
 				if ($imap->append_string("$tofolder", 
