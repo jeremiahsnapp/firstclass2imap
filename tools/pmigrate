@@ -1,0 +1,12 @@
+#!/usr/bin/perl
+
+@single = `pgrep -lf "firstclass2imap.pl"`;
+
+foreach $process (@single) {
+  if ($process =~ /single_firstclass2imap.pl/) {print;}
+  if (($process =~ /multi_firstclass2imap.pl (\d+)/) && ($1 ne "")) {
+    $fromuser = `awk 'END{print \$NF}' /var/log/migration/instance.$1`;
+    chomp($process);
+    print $process . " $fromuser";
+ }
+}

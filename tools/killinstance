@@ -1,0 +1,9 @@
+#!/usr/bin/perl
+
+if ($#ARGV == 0) {
+  system("pkill -f 'firstclass2imap.pl $ARGV[0]'");
+  print "Migration instance $ARGV[0] is dead.\n";
+}
+else {
+  print "Usage: killmigrate <instance_number>\n";
+}

@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+
+$migrationdir = "/var/log/migration/";
+
+$instance = ($#ARGV == 0) ? $ARGV[0] : '*';
+
+@instancelogs = glob($migrationdir . "instance." . $instance);
+
+$joinedinstancelogs = join(' ', @instancelogs);
+
+system("less $joinedinstancelogs");

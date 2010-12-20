@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+$migrationdir = "/var/log/migration/";
+
+$instance = ($#ARGV == 0) ? $ARGV[0] : '*';
+
+@instancelogs = glob($migrationdir . "instance." . $instance);
+
+@userlogs = ();
+
+foreach $instancelog (@instancelogs) {
+$fromuser = `awk 'END{print \$NF}' $instancelog`;
+chomp($fromuser);
+($userlog) =  `ls -1t $migrationdir$fromuser`;
+chomp($userlog);
+push(@userlogs, "$migrationdir$fromuser/$userlog");
+}
+
+$joineduserlogs = join(' ', @userlogs);
+
+system("less $joineduserlogs");
