@@ -224,7 +224,7 @@ sub migrate_folders {
 		my($folder_missed_fcuids_count, $dir_folder_skip, $dir_folder_append, $dir_folder_delete, $dir_folder_update, $dir_folder_total_fcuids) = (0, 0, 0, 0, 0, 0);
 		my($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update, $imap_folder_total_fcuids) = (0, 0, 0, 0, 0);
 
-                # create a list @imap_fcuid_list of FC-Unique-ID's and Message-ID's for
+                # create a list @imap_fcuid_list of FC-UNIQUE-ID's and Message-ID's for
                 # each message in user's destination IMAP folder
 		my $imap_fcuid_msgid = get_imap_fcuid_msgid_hash($tohost, $touser, $topassword, $imap_folder);
 
@@ -309,12 +309,12 @@ sub migrate_folders {
 
 		$imap->select($imap_folder);
 
-		my $hash_ref = $imap->fetch_hash("BODY[HEADER.FIELDS (FC-Unique-ID)]");
+		my $hash_ref = $imap->fetch_hash("BODY[HEADER.FIELDS (FC-UNIQUE-ID)]");
 
 		my @imap_fcuids = ();
         	foreach my $uid (keys(%$hash_ref)) {
-			my $fcuid = $hash_ref->{$uid}->{"BODY[HEADER.FIELDS (FC-Unique-ID)]"};
-			$fcuid =~ s/.*FC-Unique-ID:\s*//g;
+			my $fcuid = $hash_ref->{$uid}->{"BODY[HEADER.FIELDS (FC-UNIQUE-ID)]"};
+			$fcuid =~ s/.*FC-UNIQUE-ID:\s*//g;
 
 			if ($fcuid ne "") {
 				$imap_folder_total_fcuids++;
@@ -368,7 +368,7 @@ sub migrate_folders {
 		print "Total FC-UID's: \t $dir_folder_total_fcuids \t    $imap_folder_total_fcuids\n";
 
 		if ( $folder_missed_fcuids_count ) {
-			print $folder_missed_fcuids_count . " FC-Unique-ID('s) in FC's folder did NOT successfully migrate to the destination folder.\n";
+			print $folder_missed_fcuids_count . " FC-UNIQUE-ID('s) in FC's folder did NOT successfully migrate to the destination folder.\n";
 		}
 		foreach my $daterange (@$days_skipped) {
 			my ($skippeddate, $size) = @$daterange;
@@ -391,7 +391,7 @@ sub migrate_folders {
 	print "Total FC-UID's: \t $dir_account_total_fcuids \t    $imap_account_total_fcuids\n";
 
 	if ( $account_missed_fcuids_count ) {
-		print $account_missed_fcuids_count . " FC-Unique-ID('s) in FC's account did NOT successfully migrate to the destination account.\n";
+		print $account_missed_fcuids_count . " FC-UNIQUE-ID('s) in FC's account did NOT successfully migrate to the destination account.\n";
 	}
 	print "End of Report for all of $touser\'s folders.\n";
 
@@ -415,9 +415,9 @@ sub dir_imap_sync {
 
         my(%pop_fcuids_msgids_hash);
         foreach my $msg ($pop_mailbox->messages) {
-                if ( $msg->get('FC-Unique-ID') ) {
-                        $pop_fcuids_msgids_hash{$msg->get('FC-Unique-ID')}{'msgid'} = $msg->messageId;
-                        $pop_fcuids_msgids_hash{$msg->get('FC-Unique-ID')}{'date'} = $msg->get('Date');
+                if ( $msg->get('FC-UNIQUE-ID') ) {
+                        $pop_fcuids_msgids_hash{$msg->get('FC-UNIQUE-ID')}{'msgid'} = $msg->messageId;
+                        $pop_fcuids_msgids_hash{$msg->get('FC-UNIQUE-ID')}{'date'} = $msg->get('Date');
                 }
         }
 
@@ -902,7 +902,7 @@ sub process_ba_import_script {
 
 			push (@item, "Put Previous 8120 7 1252 8140 0 8141 0 8126 $1 9 \"$subject\"\n\n");
 
-                        push (@item, "Put Previous 8014.0 0 \"FC-Unique-ID-Description: This is for migration purposes only\\rFC-Unique-ID: $fcuid\\r\"\n");
+                        push (@item, "Put Previous 8014.0 0 \"FC-UNIQUE-ID-Description: This is for migration purposes only\\rFC-UNIQUE-ID: $fcuid\\r\"\n");
 
 			# Sometimes First Class email has malformed internet headers so this cleans up all First Class email internet headers
 			foreach my $internet_header_line ( split( /\\r/, join("", @internet_header_buffer) ) ) {
@@ -1163,11 +1163,11 @@ sub get_imap_fcuid_msgid_hash {
 	my $hash_ref = $imap->fetch_hash('INTERNALDATE');
 
 	foreach my $uid (keys(%$hash_ref)) {
-		if ($imap->get_header($uid, "FC-Unique-ID")) {
-			$imap_fcuid_msgid_hash{$imap->get_header($uid, "FC-Unique-ID")}{'msgid'} = $imap->get_header($uid, "Message-Id");
-			$imap_fcuid_msgid_hash{$imap->get_header($uid, "FC-Unique-ID")}{'msgid'} =~ s/\<|\>//g;
+		if ($imap->get_header($uid, "FC-UNIQUE-ID")) {
+			$imap_fcuid_msgid_hash{$imap->get_header($uid, "FC-UNIQUE-ID")}{'msgid'} = $imap->get_header($uid, "Message-Id");
+			$imap_fcuid_msgid_hash{$imap->get_header($uid, "FC-UNIQUE-ID")}{'msgid'} =~ s/\<|\>//g;
 
-			$imap_fcuid_msgid_hash{$imap->get_header($uid, "FC-Unique-ID")}{'datetime'} = $hash_ref->{$uid}->{'INTERNALDATE'};
+			$imap_fcuid_msgid_hash{$imap->get_header($uid, "FC-UNIQUE-ID")}{'datetime'} = $hash_ref->{$uid}->{'INTERNALDATE'};
 		}
 	}
         $imap->close;
