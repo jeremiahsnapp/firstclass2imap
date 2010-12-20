@@ -17,7 +17,7 @@ use Date::Manip;
 my $list_of_users_filename = "";
 my $dataDir = "/home/migrate/Maildir/.build_usermap_rcvd/";
 my $timeout = 300;
-my $searchString = "BA Migrate Script: ";
+my $searchString = "BA Migrate Script Usermap: ";
 my $max_export_script_size = 20000;
 my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
