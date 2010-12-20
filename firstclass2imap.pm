@@ -1301,7 +1301,7 @@ sub email_user_notification {
 	my $content = join( "", @test ) . "\n";
 
 	my $sender = Email::Send->new({mailer => 'SMTP'});
-	$sender->mailer_args([Host => $tohost]);
+
 	$sender->send($content);
 }
 
