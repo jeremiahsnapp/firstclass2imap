@@ -602,10 +602,6 @@ sub convert_folder_names_fc_to_imap {
         $fc_folder =~ s/^.*?(?=\/)|.*/INBOX/;   # replace the first folder name with "INBOX"
         $fc_folder =~ s/^INBOX\///i;            # this is specific for gmail ... if this is a subfolder then don't prepend "INBOX/" to the label
 
-        if ( $fc_folder !~ /\// ) {
-#                $fc_folder .= "/";
-        }
-
         return $fc_folder;
 }
 
