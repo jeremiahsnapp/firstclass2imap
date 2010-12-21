@@ -1240,24 +1240,14 @@ sub get_imap_fcuid_msgid_hash {
 sub get_imap_folders_list {
         my ($host, $user, $password, $folder, $recursive) = @_;
 
-	if ( $folder !~ /\/$/ ) {
-		$folder .= "/";
-	}
-
 	my $imap = create_imap_client($host, $user, $password);
 
         my @imap_folders_list;
 
-	if ( $imap->exists($folder) ) {
-		push(@imap_folders_list, $folder);
-
-		if ( $recursive ) {
-		        foreach ($imap->folders("$folder")) {
-				s/\\\\/\\/g;
-	        	        if ( /^"?(.+?)\/?"?$/ && ($1 ne "") ) {
-	                	        push(@imap_folders_list, $1);
-		                }
-	        	}
+       foreach ($imap->folders) {
+               s/\\\\/\\/g;
+               if ( /^"?(.+?)\/?"?$/ && ($1 ne "") ) {
+                       push(@imap_folders_list, $1);
 		}
 	}
 	$imap->close;
