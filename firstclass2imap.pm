@@ -1245,6 +1245,7 @@ sub get_imap_folders_list {
         my @imap_folders_list;
 
        foreach ($imap->folders) {
+               next if ( /^Follow up$|^Misc$|^Priority$|^\[Gmail\]/ );
                s/\\\\/\\/g;
                if ( /^"?(.+?)\/?"?$/ && ($1 ne "") ) {
                        push(@imap_folders_list, $1);
