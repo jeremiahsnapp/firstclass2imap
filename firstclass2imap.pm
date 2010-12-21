@@ -599,8 +599,15 @@ sub convert_folder_names_fc_to_imap {
         $fc_folder =~ s/\/\\/\//g;
 #        $fc_folder =~ s/\\/\\\\/g;
         $fc_folder =~ s/\?/\|/g;
-        $fc_folder =~ s/^.*?(?=\/)|.*/INBOX/;   # replace the first folder name with "INBOX"
-        $fc_folder =~ s/^INBOX\///i;            # this is specific for gmail ... if this is a subfolder then don't prepend "INBOX/" to the label
+
+       # FC folder 'Mailbox' maps to imap folder 'INBOX'
+
+        $fc_folder =~ s/^.*?(?=\/)|.*/INBOX/;  # replace the first folder name with "INBOX"
+
+       # FC folder subfolder 'Mailbox:AAA' maps to imap folder 'AAA' a subfolder of root
+       # FC folder subfolder 'Mailbox:AAA:BBB' maps to imap folder 'AAA/BBB'
+
+        $fc_folder =~ s/^INBOX\///i;
 
         return $fc_folder;
 }
