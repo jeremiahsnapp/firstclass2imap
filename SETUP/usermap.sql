@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS `usermap` (
   `fromhost` varchar(255) collate utf8_unicode_ci NOT NULL,
   `fromuser` varchar(255) collate utf8_unicode_ci NOT NULL,
   `fromfolder` text collate utf8_unicode_ci NOT NULL,
-  `tohost` varchar(255) collate utf8_unicode_ci NOT NULL,
   `touser` varchar(255) collate utf8_unicode_ci NOT NULL,
   `topassword` varchar(255) collate utf8_unicode_ci default NULL,
   `tofolder` text collate utf8_unicode_ci NOT NULL,

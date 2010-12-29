@@ -18,8 +18,6 @@
 	firstclass username
   `fromfolder` text collate utf8_unicode_ci NOT NULL,
 	firstclass folder to be migrated, defaults to "Mailbox"
-  `tohost` varchar(255) collate utf8_unicode_ci NOT NULL,
-	email server ip address to be migrated to
   `touser` varchar(255) collate utf8_unicode_ci NOT NULL,
 	new email system username
   `topassword` varchar(255) collate utf8_unicode_ci default NULL,

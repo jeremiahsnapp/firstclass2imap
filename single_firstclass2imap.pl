@@ -46,6 +46,7 @@ my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $my_fc_admin_email_address = 'administrator@schoolname.edu';
 my $my_fc_ip_address = '192.168.1.24';
 my $my_migrate_ip_address = '192.168.1.6';
+my $tohost = 'imap.gmail.com';
 my $force_update_all_email = 0;
 my $domain = 'schoolname.edu';
 my $migration_notification_email_address = 'admin@schoolname.edu';
@@ -74,15 +75,15 @@ while ($count < 1) {
 	my $elapsed_time = "";
 	my $elapsed_time_secs = "";
 
-	my ($switched, $fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $migrated, $migrating) = 
-		(0, "", "", "", "", "", "", "", 0, 0, 0);
+       my ($switched, $fromhost, $fromuser, $fromfolder, $touser, $topassword, $tofolder, $recursive, $migrated, $migrating) =
+               (0, "", "", "", "", "", "", 0, 0, 0);
 
 # this query is helpful during testing ... it limits the migration to a specific account
-	my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE fromuser = '$fc_user'");
+       my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE fromuser = '$fc_user'");
 
 	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
-	$sth->bind_columns (\$switched, \$fromhost, \$fromuser, \$fromfolder, \$tohost, \$touser, \$topassword, \$tofolder, \$recursive, \$migrated, \$migrating);
+       $sth->bind_columns (\$switched, \$fromhost, \$fromuser, \$fromfolder, \$touser, \$topassword, \$tofolder, \$recursive, \$migrated, \$migrating);
 
 	$sth->fetchrow_hashref;
 

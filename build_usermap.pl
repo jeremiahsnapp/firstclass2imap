@@ -20,9 +20,9 @@ my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $my_fc_admin_email_address = 'administrator@schoolname.edu';
 my $my_fc_ip_address = '192.168.1.24';
 my $my_migrate_ip_address = '192.168.1.6';
-my $my_to_ip_address = '192.168.1.26';
+my $my_tohost = 'imap.gmail.com';
 
-build_usermap::initialize($my_list_of_users_filename, $my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_to_ip_address);
+build_usermap::initialize($my_list_of_users_filename, $my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_tohost);
 
 system("rm -rf $my_rcvdDir");
 system("rm -rf $my_sentDir");

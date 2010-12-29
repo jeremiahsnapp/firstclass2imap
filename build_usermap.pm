@@ -23,10 +23,10 @@ my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $fc_ip_address = '192.168.1.24';
 my $migrate_ip_address = '192.168.1.6';
-my $to_ip_address = "192.168.1.26";
+my $tohost = 'imap.gmail.com';
 
 sub initialize {
-	my ($my_list_of_users_filename, $my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_to_ip_address) = @_;
+       my ($my_list_of_users_filename, $my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_tohost) = @_;
 
 	$list_of_users_filename = $my_list_of_users_filename;
 	$dataDir = $my_dataDir;
@@ -37,7 +37,7 @@ sub initialize {
 	$fc_admin_email_address = $my_fc_admin_email_address;
 	$fc_ip_address = $my_fc_ip_address;
 	$migrate_ip_address = $my_migrate_ip_address;
-	$to_ip_address = $my_to_ip_address;
+       $tohost = $my_tohost;
 }
 
 sub build_usermap {
@@ -63,7 +63,7 @@ sub build_usermap {
 		$line  =~ /(.*),(.*)/;
 		($fromuser, $touser) = (lc($1), lc($2));
 
-                $fromuser_hash{$fromuser}{'tohost'} = $to_ip_address;
+                $fromuser_hash{$fromuser}{'tohost'} = $tohost;
                 $fromuser_hash{$fromuser}{'touser'} = $touser;
 		$fromuser_hash{$fromuser}{'exists_in_fc'} = 0;
 
@@ -129,8 +129,8 @@ sub build_usermap {
 
 				# if a row already exists for this user then update the row
 				if ( @$row_exists[0] ) {
-	                	        $sth = $dbh->prepare ("UPDATE usermap SET tohost = ?, topassword = ?, account_size = ? WHERE fromuser = ? AND touser = ? AND manual = 0");
-	        	                $sth->execute( $fromuser_hash{$fromuser}{'tohost'}, $fromuser_hash{$fromuser}{'topassword'}, $fromuser_hash{$fromuser}{'size'}, $fromuser, $fromuser_hash{$fromuser}{'touser'} )
+                                       $sth = $dbh->prepare ("UPDATE usermap SET topassword = ?, account_size = ? WHERE fromuser = ? AND touser = ? AND manual = 0");
+                                       $sth->execute( $fromuser_hash{$fromuser}{'topassword'}, $fromuser_hash{$fromuser}{'size'}, $fromuser, $fromuser_hash{$fromuser}{'touser'} )
 						or die "Couldn't execute UPDATE statement: " . $sth->errstr;
 
                                         $sth->finish;
@@ -139,8 +139,8 @@ sub build_usermap {
 				}
 				# if row does not already exist for this user then create a new row
 				else {
-		                        $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromhost, fromuser, fromfolder, tohost, touser, topassword, tofolder, recursive, account_size ) VALUE ( 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ? )");
-		                        $sth->execute( $fromhost, $fromuser, $fromfolder, $fromuser_hash{$fromuser}{"tohost"}, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $tofolder, $recursive, $fromuser_hash{$fromuser}{'size'}) 
+                                       $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromhost, fromuser, fromfolder, touser, topassword, tofolder, recursive, account_size ) VALUE ( 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ? )");
+                                       $sth->execute( $fromhost, $fromuser, $fromfolder, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $tofolder, $recursive, $fromuser_hash{$fromuser}{'size'})
 						or die "Couldn't execute INSERT statement: " . $sth->errstr;
 
                                         $sth->finish;
@@ -153,22 +153,19 @@ sub build_usermap {
                         }
 		}
 
-	        my($sth) = $dbh->prepare("SELECT fromuser, touser, tohost FROM usermap WHERE manual = 0") or warn $dbh->errstr();
+               my($sth) = $dbh->prepare("SELECT fromuser, touser FROM usermap WHERE manual = 0") or warn $dbh->errstr();
 
 	        $sth->execute or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
-		my $tohost = "";
-
-	        $sth->bind_columns (\$fromuser, \$touser, \$tohost);
+               $sth->bind_columns (\$fromuser, \$touser);
 
 	        my(%usermap_hash);
 
 		# now that the mysql database has been updated with information from FirstClass we delete any rows in mysql that have invalid/old information
 	        while ($sth->fetchrow_hashref) {
 #	                $usermap_hash{$fromuser}{'touser'} = $touser;
-#	                $usermap_hash{$fromuser}{'tohost'} = $tohost;
 
-	                if ( ! exists($fromuser_hash{$fromuser}{'touser'}) || ( ($touser ne $fromuser_hash{$fromuser}{'touser'}) &&  ($tohost ne $fromuser_hash{$fromuser}{'tohost'}) ) ) {
+                       if ( ! exists($fromuser_hash{$fromuser}{'touser'}) || ($touser ne $fromuser_hash{$fromuser}{'touser'}) ) {
 ### disable deletion of accounts from the database until we determine that this is a feature we want
 ###                        	my $sth2 = $dbh->prepare("DELETE FROM usermap WHERE fromuser = ? AND touser = ? AND manual = 0");
 ###                	        $sth2->execute($fromuser, $touser)
@@ -178,7 +175,7 @@ sub build_usermap {
 	        }
                 $sth->finish;
 #	        foreach $fromuser (sort(keys(%usermap_hash))) {
-#	                if ( ! exists($fromuser_hash{$fromuser}{'touser'}) || ( ($usermap_hash{$fromuser}{'touser'} ne $fromuser_hash{$fromuser}{'touser'}) &&  ($usermap_hash{$fromuser}{'tohost'} ne $fromuser_hash{$fromuser}{'tohost'}) ) ) {
+#                      if ( ! exists($fromuser_hash{$fromuser}{'touser'}) || ($usermap_hash{$fromuser}{'touser'} ne $fromuser_hash{$fromuser}{'touser'}) ) {
 #                        	$sth = $dbh->prepare("DELETE FROM usermap WHERE fromuser = ? AND touser = ? AND manual = 0");
 #                	        $sth->execute($fromuser, $usermap_hash{$fromuser}{'touser'})
 #        	                        or die "Couldn't execute DELETE statement: " . $sth->errstr;
