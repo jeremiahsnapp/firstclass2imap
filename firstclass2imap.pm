@@ -56,7 +56,7 @@ sub initialize {
 }
 
 sub migrate_folder_structure {
-	my($fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination) = @_;
+	my($fromuser, $fromfolder, $tohost, $touser, $topassword, $recursive, $delete_from_destination) = @_;
 
 	print print_timestamp() . " : Start Migrating Folder Structure for Account: $fromuser with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
 
@@ -102,7 +102,7 @@ sub migrate_folder_structure {
 		push (@from_folders_list_converted, convert_folder_names_fc_to_imap($from_folder));
 	}
 
-	my(@to_folders_list) = get_imap_folders_list($tohost, $touser, $topassword, $tofolder, $recursive);
+	my(@to_folders_list) = get_imap_folders_list($tohost, $touser, $topassword);
 
 	if (!@to_folders_list) {
 		print print_timestamp() . " : Failed to get list of destination folders for Account: $touser\n";
@@ -151,7 +151,7 @@ sub migrate_folder_structure {
 
 	$fc_total_folders = @from_folders_list;
 
-	@to_folders_list = get_imap_folders_list($tohost, $touser, $topassword, $tofolder, $recursive);
+	@to_folders_list = get_imap_folders_list($tohost, $touser, $topassword);
 	$imap_total_folders = @to_folders_list;
 
 	$lc = List::Compare->new('-i', \@from_folders_list_converted, \@to_folders_list);
@@ -178,7 +178,7 @@ sub migrate_folder_structure {
 }
 
 sub migrate_folders {
-	my($fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email) = @_;
+	my($fromuser, $fromfolder, $tohost, $touser, $topassword, $recursive, $delete_from_destination, $force_update_all_email) = @_;
 
 	print print_timestamp() . " : Start Migrating Folders for Account: $fromuser\n";
 
@@ -1241,7 +1241,7 @@ sub get_imap_fcuid_msgid_hash {
 
 # sub get_imap_folders_list returns a cleaned up list of all subfolders of the root_folder recursively
 sub get_imap_folders_list {
-        my ($host, $user, $password, $folder, $recursive) = @_;
+        my ($host, $user, $password) = @_;
 
 	my $imap = create_imap_client($host, $user, $password);
 

@@ -73,15 +73,15 @@ while ($count < 22) {
 	my $elapsed_time = "";
 	my $elapsed_time_secs = "";
 
-       my ($switched, $fromuser, $fromfolder, $touser, $topassword, $tofolder, $recursive, $migrated, $migrating) =
-               (0, "", "", "", "", "", 0, 0, 0);
+       my ($switched, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating) =
+               (0, "", "", "", "", 0, 0, 0);
 
 # this query is for when you are ready to migrate all accounts
-       my($sth) = $dbh->prepare("SELECT switched, fromuser, fromfolder, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+       my($sth) = $dbh->prepare("SELECT switched, fromuser, fromfolder, touser, topassword, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
 
 	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
-       $sth->bind_columns (\$switched, \$fromuser, \$fromfolder, \$touser, \$topassword, \$tofolder, \$recursive, \$migrated, \$migrating);
+       $sth->bind_columns (\$switched, \$fromuser, \$fromfolder, \$touser, \$topassword, \$recursive, \$migrated, \$migrating);
 
 	$sth->fetchrow_hashref;
 
@@ -112,8 +112,8 @@ while ($count < 22) {
 	system("rm -rf $my_rcvdDir");
 	system("rm -rf $my_sentDir");
 
-	$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), migrating = 1, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-	if ($sth->execute( $migrated, $fromuser, $touser, $fromfolder, $tofolder )) {
+	$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), migrating = 1, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
+	if ($sth->execute( $migrated, $fromuser, $touser, $fromfolder )) {
                 $sth->finish;
 		my($migrated_folder_structure, $migrated_folders, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids) = (0, 0, 0, 0, 0, 0);
 		my ($missed_folders_count, $missed_fcuids_count) = (0, 0);
@@ -123,18 +123,18 @@ while ($count < 22) {
 		my $delete_from_destination = 0;
 ###		$delete_from_destination = 1 if (!$switched);
 
-		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination);
+		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromuser, $fromfolder, $tohost, $touser, $topassword, $recursive, $delete_from_destination);
 
 		if (!$migrated_folder_structure) {
-			$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, broken = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-                        $sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
+			$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, broken = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
+                        $sth->execute( $fromuser, $touser, $fromfolder );
                         $sth->finish;
 
 			$count++;
 			next;
 		}
 
-		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email);
+		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromuser, $fromfolder, $tohost, $touser, $topassword, $recursive, $delete_from_destination, $force_update_all_email);
 
 		if ($migrated_folder_structure && $migrated_folders) {
 			$missed_folders_count = @$missed_folders;
@@ -160,19 +160,19 @@ while ($count < 22) {
                           $percent_complete = 100;
                         }
 
-                        $sth = $dbh->prepare ("UPDATE usermap SET duration = ?, percent_complete = ?, fc_folder_count = ?, destination_folder_count = ?, fc_fcuid_count = ?, destination_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-                        $sth->execute( $elapsed_time_secs, $percent_complete, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder, $tofolder );
+                        $sth = $dbh->prepare ("UPDATE usermap SET duration = ?, percent_complete = ?, fc_folder_count = ?, destination_folder_count = ?, fc_fcuid_count = ?, destination_fcuid_count = ?, missed_folders_count = ?, missed_fcuids_count = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
+                        $sth->execute( $elapsed_time_secs, $percent_complete, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_folders_count, $missed_fcuids_count, $fromuser, $touser, $fromfolder );
                         $sth->finish;
 
 			if ( ($missed_folders_count == 0) && ($missed_fcuids_count == 0) ) {
-				$sth = $dbh->prepare ("UPDATE usermap SET migration_complete = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-				$sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
+				$sth = $dbh->prepare ("UPDATE usermap SET migration_complete = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
+				$sth->execute( $fromuser, $touser, $fromfolder );
                                 $sth->finish;
 			}
 		}
 
-		$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
-		$sth->execute( $fromuser, $touser, $fromfolder, $tofolder );
+		$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0 WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
+		$sth->execute( $fromuser, $touser, $fromfolder );
                 $sth->finish;
 
                 if (0) {

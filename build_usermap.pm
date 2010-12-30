@@ -98,7 +98,7 @@ sub build_usermap {
 	        }
 	        close FH;
 
-		my($fromfolder, $tofolder, $recursive) = ("Mailbox", "INBOX", "1");
+		my($fromfolder, $recursive) = ("Mailbox", "1");
 
 		foreach $fromuser (sort(keys(%fromuser_hash))) {
 			if ( $fromuser_hash{$fromuser}{'exists_in_fc'} ) {
@@ -139,8 +139,8 @@ sub build_usermap {
 				}
 				# if row does not already exist for this user then create a new row
 				else {
-                                       $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromuser, fromfolder, touser, topassword, tofolder, recursive, account_size ) VALUE ( 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ? )");
-                                       $sth->execute( $fromuser, $fromfolder, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $tofolder, $recursive, $fromuser_hash{$fromuser}{'size'})
+                                       $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromuser, fromfolder, touser, topassword, recursive, account_size ) VALUE ( 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ? )");
+                                       $sth->execute( $fromuser, $fromfolder, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $recursive, $fromuser_hash{$fromuser}{'size'})
 						or die "Couldn't execute INSERT statement: " . $sth->errstr;
 
                                         $sth->finish;

@@ -22,7 +22,6 @@ CREATE TABLE IF NOT EXISTS `usermap` (
   `fromfolder` text collate utf8_unicode_ci NOT NULL,
   `touser` varchar(255) collate utf8_unicode_ci NOT NULL,
   `topassword` varchar(255) collate utf8_unicode_ci default NULL,
-  `tofolder` text collate utf8_unicode_ci NOT NULL,
   `recursive` tinyint(1) NOT NULL default '0',
   `migrating` tinyint(1) NOT NULL default '0',
   `migrated` int(11) NOT NULL default '0',

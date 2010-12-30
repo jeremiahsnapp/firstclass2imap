@@ -20,8 +20,6 @@
 	new email system username
   `topassword` varchar(255) collate utf8_unicode_ci default NULL,
 	new email system password, defaults to empty string, shouldn't be needed in most migration scenarios
-  `tofolder` text collate utf8_unicode_ci NOT NULL,
-	destination IMAP folder, defaults to "INBOX"
   `recursive` tinyint(1) NOT NULL default '0',
 	boolean value, identifies whether to migrate all subfolders
   `migrating` tinyint(1) NOT NULL default '0',
