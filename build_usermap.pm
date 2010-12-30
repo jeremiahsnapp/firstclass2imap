@@ -144,7 +144,7 @@ sub build_usermap {
 				}
 				# if row does not already exist for this user then create a new row
 				else {
-                                       $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromuser, fromfolder, touser, topassword, recursive, account_size ) VALUE ( 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ? )");
+                                       $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromuser, fromfolder, touser, topassword, recursive, account_size ) VALUE ( 0, 0, 0, ?, ?, ?, ?, ?, ? )");
                                        $sth->execute( $fromuser, $fromfolder, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $recursive, $fromuser_hash{$fromuser}{'size'})
 						or die "Couldn't execute INSERT statement: " . $sth->errstr;
 
