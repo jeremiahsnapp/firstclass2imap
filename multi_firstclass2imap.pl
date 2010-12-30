@@ -5,21 +5,20 @@ use strict;
 use POSIX qw(ceil floor);
 
 use DBI;
+use YAML::Tiny;
 
 use firstclass2imap;
 use Date::Manip;
 
-if (@ARGV != 2) {
-        print "Usage: ./multi_firstclass2imap.pl <instance> <threshold>\n\n";
+if (@ARGV != 1) {
+        print "Usage: ./multi_firstclass2imap.pl <instance>\n\n";
         print "Where <instance> is a number representing the migration account in First Class that will be used.\n\n";
-        print "<threshold> is the maximum size of a batch admin email in kB\n\n";
-        print "Example: ./multi_firstclass2imap.pl 1 20000\n\n";
+        print "Example: ./multi_firstclass2imap.pl 1\n\n";
 
         exit;
 }
 
 my $instance = shift(@ARGV);
-my $threshold = shift(@ARGV);
 
 my @procs = `ps ax`;
 if ( grep(/firstclass2imap.pl\s+$instance/, @procs) > 1 ) {
@@ -28,34 +27,25 @@ if ( grep(/firstclass2imap.pl\s+$instance/, @procs) > 1 ) {
     exit();
 }
 
-my $my_timeout = 900;
-my $my_rcvdDir = "/home/migrate/Maildir/.ba_rcvd_$instance/";
-my $my_sentDir = "/home/migrate/Maildir/.ba_sent_$instance/";
-my $my_searchString = "BA Migrate Script $instance: ";
-my $my_migrate_user = "migrate" . $instance;
-my $my_migrate_password = "migrate" . $instance;
-my $my_max_export_script_size = $threshold;
-my $my_dry_run = 0;
-my $my_debugimap = 0;
-my $my_to_imaps = 1;
-my $my_to_authuser = 'admin';
-my $my_to_authuser_password = 'password';
-my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
-my $my_fc_admin_email_address = 'administrator@schoolname.edu';
-my $fromhost = '192.168.1.24';
-my $migratehost = '192.168.1.6';
-my $tohost = 'imap.gmail.com';
-my $force_update_all_email = 0;
-my $domain = 'schoolname.edu';
-my $migration_notification_email_address = 'admin@schoolname.edu';
+# Create a YAML file
+my $yaml = YAML::Tiny->new;
 
-firstclass2imap::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $fromhost, $migratehost);
+# Open the config
+$yaml = YAML::Tiny->read( 'migration.cfg' );
 
-# MySQL CONFIG VARIABLES
-my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");
+my $rcvdDir = $yaml->[0]->{mailDir} . ".ba_rcvd_$instance/";
+my $sentDir = $yaml->[0]->{mailDir} . ".ba_sent_$instance/";
+my $force_update_all_email = $yaml->[0]->{force_update_all_email};
+my $domain = $yaml->[0]->{domain};
+my $migration_notification_email_address = $yaml->[0]->{migration_notification_email_address};
+my $dbname = $yaml->[0]->{dbname};
+my $dbuser = $yaml->[0]->{dbuser};
+my $dbpassword = $yaml->[0]->{dbpassword};
 
-# PERL MYSQL CONNECT
-my($dbh) = DBI->connect("DBI:mysql:$mysqldb", $mysqluser, $mysqlpassword) or die "Couldn't connect to database: " . DBI->errstr;
+firstclass2imap::initialize($instance);
+
+# PERL Database CONNECT
+my($dbh) = DBI->connect("DBI:mysql:$dbname", $dbuser, $dbpassword) or die "Couldn't connect to database: " . DBI->errstr;
 
 $dbh->{mysql_auto_reconnect} = 1;
 
@@ -109,8 +99,8 @@ while ($count < 22) {
         open(STDOUT, '>', "/var/log/migration/$fromuser/$fromuser." . $migrated) or die "Can't redirect STDOUT: $!";
         open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
 
-	system("rm -rf $my_rcvdDir");
-	system("rm -rf $my_sentDir");
+	system("rm -rf $rcvdDir");
+	system("rm -rf $sentDir");
 
 	$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), migrating = 1, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
 	if ($sth->execute( $migrated, $fromuser, $touser, $fromfolder )) {
@@ -123,7 +113,7 @@ while ($count < 22) {
 		my $delete_from_destination = 0;
 ###		$delete_from_destination = 1 if (!$switched);
 
-		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromuser, $fromfolder, $tohost, $touser, $topassword, $recursive, $delete_from_destination);
+		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromuser, $fromfolder, $touser, $topassword, $recursive, $delete_from_destination);
 
 		if (!$migrated_folder_structure) {
 			$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, broken = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
@@ -134,7 +124,7 @@ while ($count < 22) {
 			next;
 		}
 
-		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromuser, $fromfolder, $tohost, $touser, $topassword, $recursive, $delete_from_destination, $force_update_all_email);
+		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromuser, $fromfolder, $touser, $topassword, $recursive, $delete_from_destination, $force_update_all_email);
 
 		if ($migrated_folder_structure && $migrated_folders) {
 			$missed_folders_count = @$missed_folders;
@@ -177,7 +167,7 @@ while ($count < 22) {
 
                 if (0) {
 ###             this is commented out because we don't want email notifications at this point since there would be so many
-###		if ($migrated_folder_structure && $migrated_folders) {
+###             if ($migrated_folder_structure && $migrated_folders) {
 			my $from_address = "$migration_notification_email_address";
 
 			my $to_address = "$migration_notification_email_address";
@@ -216,7 +206,7 @@ while ($count < 22) {
 
 			push(@body, pretty_print($missed_folders, $missed_fcuids));
 
-			firstclass2imap::email_user_notification($from_address, $tohost, $to_address, $subject, @body);
+			firstclass2imap::email_user_notification($from_address, $to_address, $subject, @body);
 		}
 	}
         $sth->finish;

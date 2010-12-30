@@ -7,6 +7,7 @@ use DBI;
 use Data::Dumper;
 use File::Copy;
 use File::Basename;
+use YAML::Tiny;
 
 use Email::Send;
 use Mail::Message;
@@ -25,17 +26,21 @@ my $fromhost = '192.168.1.24';
 my $migratehost = '192.168.1.6';
 
 sub initialize {
-	my ($my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost, $my_domain) = @_;
+	# Create a YAML file
+	my $yaml = YAML::Tiny->new;
 
-	$rcvdDir = $my_rcvdDir;
-	$timeout = $my_timeout;
-	$searchString = $my_searchString;
-	$max_export_script_size = $my_max_export_script_size;
-	$migrate_email_address = $my_migrate_email_address;
-	$fc_admin_email_address = $my_fc_admin_email_address;
-	$fromhost = $my_fromhost;
-	$migratehost = $my_migratehost;
-	$domain = $my_domain;
+	# Open the config
+	$yaml = YAML::Tiny->read( 'migration.cfg' );
+
+	$rcvdDir = $yaml->[0]->{rcvdDir} . ".switched_user_rcvd/";
+	$timeout = $yaml->[0]->{timeout};
+	$searchString = $yaml->[0]->{searchString} . " switched_user: ";
+	$max_export_script_size = $yaml->[0]->{max_export_script_size};
+	$migrate_email_address = $yaml->[0]->{migrate_email_address};
+	$fc_admin_email_address = $yaml->[0]->{fc_admin_email_address};
+	$fromhost = $yaml->[0]->{fromhost};
+	$migratehost = $yaml->[0]->{migratehost};
+	$domain = $yaml->[0]->{domain};
 }
 
 sub switch_user_to_destination {

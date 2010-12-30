@@ -7,6 +7,7 @@ use DBI;
 use Data::Dumper;
 use File::Copy;
 use File::Basename;
+use YAML::Tiny;
 
 use Email::Send;
 use Mail::Message;
@@ -23,29 +24,34 @@ my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $fromhost = '192.168.1.24';
 my $migratehost = '192.168.1.6';
-my $tohost = 'imap.gmail.com';
+my $dbname = "migrate";
+my $dbuser = "user";
+my $dbpassword = "password";
 
 sub initialize {
-       my ($my_list_of_users_filename, $my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost, $my_tohost) = @_;
+	# Create a YAML file
+	my $yaml = YAML::Tiny->new;
 
-	$list_of_users_filename = $my_list_of_users_filename;
-	$rcvdDir = $my_rcvdDir;
-	$timeout = $my_timeout;
-	$searchString = $my_searchString;
-	$max_export_script_size = $my_max_export_script_size;
-	$migrate_email_address = $my_migrate_email_address;
-	$fc_admin_email_address = $my_fc_admin_email_address;
-	$fromhost = $my_fromhost;
-	$migratehost = $my_migratehost;
-       $tohost = $my_tohost;
+	# Open the config
+	$yaml = YAML::Tiny->read( 'migration.cfg' );
+
+	$list_of_users_filename = $yaml->[0]->{list_of_users_filename};
+	$rcvdDir = $yaml->[0]->{mailDir} . ".build_usermap_rcvd/";
+	$timeout = $yaml->[0]->{timeout};
+	$searchString = $yaml->[0]->{searchString} . " Usermap: ";
+	$max_export_script_size = $yaml->[0]->{max_export_script_size};
+	$migrate_email_address = $yaml->[0]->{migrate_email_address};
+	$fc_admin_email_address = $yaml->[0]->{fc_admin_email_address};
+	$fromhost = $yaml->[0]->{fromhost};
+	$migratehost = $yaml->[0]->{migratehost};
+	$dbname = $yaml->[0]->{dbname};
+	$dbuser = $yaml->[0]->{dbuser};
+	$dbpassword = $yaml->[0]->{dbpassword};
 }
 
 sub build_usermap {
-	# MySQL CONFIG VARIABLES
-	my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");
-
-	# PERL MYSQL CONNECT
-	my($dbh) = DBI->connect("DBI:mysql:$mysqldb", $mysqluser, $mysqlpassword) or die "Couldn't connect to database: " . DBI->errstr;
+	# PERL Database CONNECT
+	my($dbh) = DBI->connect("DBI:mysql:$dbname", $dbuser, $dbpassword) or die "Couldn't connect to database: " . DBI->errstr;
 
         $dbh->{mysql_auto_reconnect} = 1;
 
@@ -63,7 +69,6 @@ sub build_usermap {
 		$line  =~ /(.*),(.*)/;
 		($fromuser, $touser) = (lc($1), lc($2));
 
-                $fromuser_hash{$fromuser}{'tohost'} = $tohost;
                 $fromuser_hash{$fromuser}{'touser'} = $touser;
 		$fromuser_hash{$fromuser}{'exists_in_fc'} = 0;
 

@@ -7,6 +7,7 @@ use DBI;
 use Data::Dumper;
 use File::Copy;
 use File::Basename;
+use YAML::Tiny;
 
 use Email::Send;
 
@@ -34,29 +35,37 @@ my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $fromhost = '192.168.1.24';
 my $migratehost = '192.168.1.6';
+my $tohost = 'imap.gmail.com';
 
 sub initialize {
-	my ($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost) = @_;
+	my ($instance) = @_;
 
-	$rcvdDir = $my_rcvdDir;
-	$timeout = $my_timeout;
-	$searchString = $my_searchString;
-	$max_export_script_size = $my_max_export_script_size;
-	$dry_run = $my_dry_run;
-	$debugimap = $my_debugimap;
-	$to_imaps = $my_to_imaps;
-	$to_authuser = $my_to_authuser;
-	$to_authuser_password = $my_to_authuser_password;
-	$migrate_user = $my_migrate_user;
-	$migrate_password = $my_migrate_password;
-	$migrate_email_address = $my_migrate_email_address;
-	$fc_admin_email_address = $my_fc_admin_email_address;
-	$fromhost = $my_fromhost;
-	$migratehost = $my_migratehost;
+	# Create a YAML file
+	my $yaml = YAML::Tiny->new;
+
+	# Open the config
+	$yaml = YAML::Tiny->read( 'migration.cfg' );
+
+	$dry_run = $yaml->[0]->{dry_run};
+	$debugimap = $yaml->[0]->{debugimap};
+	$to_imaps = $yaml->[0]->{to_imaps};
+	$to_authuser = $yaml->[0]->{to_authuser};
+	$to_authuser_password = $yaml->[0]->{to_authuser_password};
+	$rcvdDir = $yaml->[0]->{mailDir} . ".ba_rcvd_$instance/";
+	$timeout = $yaml->[0]->{timeout};
+	$searchString = $yaml->[0]->{searchString} . " $instance: ";
+	$max_export_script_size = $yaml->[0]->{max_export_script_size};
+	$migrate_user = $yaml->[0]->{migrate_user} . $instance;
+	$migrate_password = $yaml->[0]->{migrate_password} . $instance;
+	$migrate_email_address = $yaml->[0]->{migrate_email_address};
+	$fc_admin_email_address = $yaml->[0]->{fc_admin_email_address};
+	$fromhost = $yaml->[0]->{fromhost};
+	$migratehost = $yaml->[0]->{migratehost};
+	$tohost = $yaml->[0]->{tohost};
 }
 
 sub migrate_folder_structure {
-	my($fromuser, $fromfolder, $tohost, $touser, $topassword, $recursive, $delete_from_destination) = @_;
+	my($fromuser, $fromfolder, $touser, $topassword, $recursive, $delete_from_destination) = @_;
 
 	print print_timestamp() . " : Start Migrating Folder Structure for Account: $fromuser with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
 
@@ -178,7 +187,7 @@ sub migrate_folder_structure {
 }
 
 sub migrate_folders {
-	my($fromuser, $fromfolder, $tohost, $touser, $topassword, $recursive, $delete_from_destination, $force_update_all_email) = @_;
+	my($fromuser, $fromfolder, $touser, $topassword, $recursive, $delete_from_destination, $force_update_all_email) = @_;
 
 	print print_timestamp() . " : Start Migrating Folders for Account: $fromuser\n";
 
@@ -1311,7 +1320,7 @@ sub plainauth() {
 }
 
 sub email_user_notification {
-        my ($from_address, $tohost, $to_address, $msg_subject, @body) = @_;
+        my ($from_address, $to_address, $msg_subject, @body) = @_;
 
         my $reply_to = "From: " . $from_address . "\n";
         my $send_to = "To: " . $to_address . "\n";

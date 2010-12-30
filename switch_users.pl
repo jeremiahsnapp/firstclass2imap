@@ -4,29 +4,28 @@ use warnings;
 use strict;
 
 use DBI;
+use YAML::Tiny;
 
 use switch_users;
 use Date::Manip;
 
-my $my_timeout = 900;
-my $my_rcvdDir = "/home/migrate/Maildir/.switched_user_rcvd/";
-my $my_sentDir = "/home/migrate/Maildir/.switched_user_sent/";
-my $my_searchString = "BA Migrate Script switched_user: ";
-my $my_max_export_script_size = 20000;
-my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
-my $my_fc_admin_email_address = 'administrator@schoolname.edu';
-my $fromhost = '192.168.1.24';
-my $migratehost = '192.168.1.6';
-my $tohost = 'imap.gmail.com';
-my $my_domain = 'schoolname.edu';
 
-switch_users::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $fromhost, $migratehost, $my_domain);
+# Create a YAML file
+my $yaml = YAML::Tiny->new;
 
-# MySQL CONFIG VARIABLES
-my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");
+# Open the config
+$yaml = YAML::Tiny->read( 'migration.cfg' );
 
-# PERL MYSQL CONNECT
-my($dbh) = DBI->connect("DBI:mysql:$mysqldb", $mysqluser, $mysqlpassword) or die "Couldn't connect to database: " . DBI->errstr;
+my $rcvdDir = $yaml->[0]->{mailDir} . ".switched_user_rcvd/";
+my $sentDir = $yaml->[0]->{mailDir} . ".switched_user_sent/";
+my $dbname = $yaml->[0]->{dbname};
+my $dbuser = $yaml->[0]->{dbuser};
+my $dbpassword = $yaml->[0]->{dbpassword};
+
+switch_users::initialize;
+
+# PERL Database CONNECT
+my($dbh) = DBI->connect("DBI:mysql:$dbname", $dbuser, $dbpassword) or die "Couldn't connect to database: " . DBI->errstr;
 
 $dbh->{mysql_auto_reconnect} = 1;
 
@@ -51,8 +50,8 @@ while ($count < 200) {
 	open(STDOUT, '>>', "/var/log/migration/switch_user") or die "Can't redirect STDOUT: $!";
 	open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
 
-	system("rm $my_rcvdDir*");
-	system("rm $my_sentDir*");
+	system("rm $rcvdDir*");
+	system("rm $sentDir*");
 
 	$switched = switch_users::switch_user_to_destination($fromuser, $touser);
 
