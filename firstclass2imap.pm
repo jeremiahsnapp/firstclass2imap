@@ -1270,11 +1270,6 @@ sub create_imap_client {
         # gmail does not allow PLAIN mechanism so use LOGIN
         my $authmech = "LOGIN";
 
-# if the imap server is the firstclass server then use CRAM-MD5
-        if ($host eq $fc_ip_address) {
-                $authmech = "CRAM-MD5";
-        }
-
 # if the imap server allows for admin access to user accounts then set $authuser and $password to an imap account with admin rights
         if ($to_authuser && $to_authuser_password) {
                 $authuser = $to_authuser;
