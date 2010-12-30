@@ -21,11 +21,11 @@ my $max_export_script_size = 20000;
 my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $domain = 'schoolname.edu';
-my $fc_ip_address = '192.168.1.24';
+my $fromhost = '192.168.1.24';
 my $migrate_ip_address = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_domain) = @_;
+	my ($my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migrate_ip_address, $my_domain) = @_;
 
 	$dataDir = $my_dataDir;
 	$timeout = $my_timeout;
@@ -33,7 +33,7 @@ sub initialize {
 	$max_export_script_size = $my_max_export_script_size;
 	$migrate_email_address = $my_migrate_email_address;
 	$fc_admin_email_address = $my_fc_admin_email_address;
-	$fc_ip_address = $my_fc_ip_address;
+	$fromhost = $my_fromhost;
 	$migrate_ip_address = $my_migrate_ip_address;
 	$domain = $my_domain;
 }
@@ -110,7 +110,7 @@ sub email_to_batch_admin {
 	my $content = join( "", @test ) . "\n";
 
 	my $sender = Email::Send->new({mailer => 'SMTP'});
-	$sender->mailer_args([Host => $fc_ip_address]);
+	$sender->mailer_args([Host => $fromhost]);
 	$sender->send($content);
 
         $send_to = "To: $migrate_email_address\n";

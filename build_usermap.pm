@@ -21,12 +21,12 @@ my $searchString = "BA Migrate Script Usermap: ";
 my $max_export_script_size = 20000;
 my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
-my $fc_ip_address = '192.168.1.24';
+my $fromhost = '192.168.1.24';
 my $migrate_ip_address = '192.168.1.6';
 my $tohost = 'imap.gmail.com';
 
 sub initialize {
-       my ($my_list_of_users_filename, $my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_tohost) = @_;
+       my ($my_list_of_users_filename, $my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migrate_ip_address, $my_tohost) = @_;
 
 	$list_of_users_filename = $my_list_of_users_filename;
 	$dataDir = $my_dataDir;
@@ -35,7 +35,7 @@ sub initialize {
 	$max_export_script_size = $my_max_export_script_size;
 	$migrate_email_address = $my_migrate_email_address;
 	$fc_admin_email_address = $my_fc_admin_email_address;
-	$fc_ip_address = $my_fc_ip_address;
+	$fromhost = $my_fromhost;
 	$migrate_ip_address = $my_migrate_ip_address;
        $tohost = $my_tohost;
 }
@@ -98,7 +98,7 @@ sub build_usermap {
 	        }
 	        close FH;
 
-		my($fromhost, $fromfolder, $tofolder, $recursive) = ($fc_ip_address, "Mailbox", "INBOX", "1");
+		my($fromfolder, $tofolder, $recursive) = ("Mailbox", "INBOX", "1");
 
 		foreach $fromuser (sort(keys(%fromuser_hash))) {
 			if ( $fromuser_hash{$fromuser}{'exists_in_fc'} ) {
@@ -139,8 +139,8 @@ sub build_usermap {
 				}
 				# if row does not already exist for this user then create a new row
 				else {
-                                       $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromhost, fromuser, fromfolder, touser, topassword, tofolder, recursive, account_size ) VALUE ( 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ? )");
-                                       $sth->execute( $fromhost, $fromuser, $fromfolder, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $tofolder, $recursive, $fromuser_hash{$fromuser}{'size'})
+                                       $sth = $dbh->prepare("INSERT INTO usermap ( switched, manual, migrate, fromuser, fromfolder, touser, topassword, tofolder, recursive, account_size ) VALUE ( 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ? )");
+                                       $sth->execute( $fromuser, $fromfolder, $fromuser_hash{$fromuser}{'touser'}, $fromuser_hash{$fromuser}{'topassword'}, $tofolder, $recursive, $fromuser_hash{$fromuser}{'size'})
 						or die "Couldn't execute INSERT statement: " . $sth->errstr;
 
                                         $sth->finish;
@@ -205,7 +205,7 @@ sub email_to_batch_admin {
 	my $content = join( "", @test ) . "\n";
 
 	my $sender = Email::Send->new({mailer => 'SMTP'});
-	$sender->mailer_args([Host => $fc_ip_address]);
+	$sender->mailer_args([Host => $fromhost]);
 	$sender->send($content);
 
         $send_to = "To: $migrate_email_address\n";

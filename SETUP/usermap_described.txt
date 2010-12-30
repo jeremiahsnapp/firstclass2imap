@@ -12,8 +12,6 @@
 	boolean value, manually set, identifies accounts that should be migrated
   `migration_complete` tinyint(1) NOT NULL default '0',
 	boolean value, automatically set, identifies accounts that have been migrated successfully
-  `fromhost` varchar(255) collate utf8_unicode_ci NOT NULL,
-	ip address of the firstclass server
   `fromuser` varchar(255) collate utf8_unicode_ci NOT NULL,
 	firstclass username
   `fromfolder` text collate utf8_unicode_ci NOT NULL,

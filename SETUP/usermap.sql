@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS `usermap` (
   `manual` tinyint(1) NOT NULL default '0',
   `migrate` tinyint(1) NOT NULL default '0',
   `migration_complete` tinyint(1) NOT NULL default '0',
-  `fromhost` varchar(255) collate utf8_unicode_ci NOT NULL,
   `fromuser` varchar(255) collate utf8_unicode_ci NOT NULL,
   `fromfolder` text collate utf8_unicode_ci NOT NULL,
   `touser` varchar(255) collate utf8_unicode_ci NOT NULL,

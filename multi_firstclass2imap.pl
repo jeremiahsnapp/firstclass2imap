@@ -42,14 +42,14 @@ my $my_to_authuser = 'admin';
 my $my_to_authuser_password = 'password';
 my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $my_fc_admin_email_address = 'administrator@schoolname.edu';
-my $my_fc_ip_address = '192.168.1.24';
+my $fromhost = '192.168.1.24';
 my $my_migrate_ip_address = '192.168.1.6';
 my $tohost = 'imap.gmail.com';
 my $force_update_all_email = 0;
 my $domain = 'schoolname.edu';
 my $migration_notification_email_address = 'admin@schoolname.edu';
 
-firstclass2imap::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address);
+firstclass2imap::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $fromhost, $my_migrate_ip_address);
 
 # MySQL CONFIG VARIABLES
 my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");
@@ -73,15 +73,15 @@ while ($count < 22) {
 	my $elapsed_time = "";
 	my $elapsed_time_secs = "";
 
-       my ($switched, $fromhost, $fromuser, $fromfolder, $touser, $topassword, $tofolder, $recursive, $migrated, $migrating) =
-               (0, "", "", "", "", "", "", 0, 0, 0);
+       my ($switched, $fromuser, $fromfolder, $touser, $topassword, $tofolder, $recursive, $migrated, $migrating) =
+               (0, "", "", "", "", "", 0, 0, 0);
 
 # this query is for when you are ready to migrate all accounts
-       my($sth) = $dbh->prepare("SELECT switched, fromhost, fromuser, fromfolder, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+       my($sth) = $dbh->prepare("SELECT switched, fromuser, fromfolder, touser, topassword, tofolder, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
 
 	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
-       $sth->bind_columns (\$switched, \$fromhost, \$fromuser, \$fromfolder, \$touser, \$topassword, \$tofolder, \$recursive, \$migrated, \$migrating);
+       $sth->bind_columns (\$switched, \$fromuser, \$fromfolder, \$touser, \$topassword, \$tofolder, \$recursive, \$migrated, \$migrating);
 
 	$sth->fetchrow_hashref;
 
@@ -123,7 +123,7 @@ while ($count < 22) {
 		my $delete_from_destination = 0;
 ###		$delete_from_destination = 1 if (!$switched);
 
-		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination);
+		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination);
 
 		if (!$migrated_folder_structure) {
 			$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, broken = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? AND tofolder = ? LIMIT 1");
@@ -134,7 +134,7 @@ while ($count < 22) {
 			next;
 		}
 
-		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email);
+		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email);
 
 		if ($migrated_folder_structure && $migrated_folders) {
 			$missed_folders_count = @$missed_folders;

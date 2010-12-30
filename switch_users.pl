@@ -15,12 +15,12 @@ my $my_searchString = "BA Migrate Script switched_user: ";
 my $my_max_export_script_size = 20000;
 my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $my_fc_admin_email_address = 'administrator@schoolname.edu';
-my $my_fc_ip_address = '192.168.1.24';
+my $fromhost = '192.168.1.24';
 my $my_migrate_ip_address = '192.168.1.6';
 my $tohost = 'imap.gmail.com';
 my $my_domain = 'schoolname.edu';
 
-switch_users::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address, $my_domain);
+switch_users::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $fromhost, $my_migrate_ip_address, $my_domain);
 
 # MySQL CONFIG VARIABLES
 my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");
@@ -38,12 +38,12 @@ while ($count < 200) {
 	my $elapsed_time = "";
 	my $elapsed_time_secs = "";
 
-       my ($switch, $switched, $fromhost, $fromuser, $touser) = (0, 0, "", "", "");
+       my ($switch, $switched, $fromuser, $touser) = (0, 0, "", "");
 
-       my($sth) = $dbh->prepare("SELECT switch, switched, fromhost, fromuser, touser FROM usermap WHERE switch = 1 AND switched = 0");
+       my($sth) = $dbh->prepare("SELECT switch, switched, fromuser, touser FROM usermap WHERE switch = 1 AND switched = 0");
 	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
-       $sth->bind_columns (\$switch, \$switched, \$fromhost, \$fromuser, \$touser);
+       $sth->bind_columns (\$switch, \$switched, \$fromuser, \$touser);
 
 	$sth->fetchrow_hashref;
         $sth->finish;

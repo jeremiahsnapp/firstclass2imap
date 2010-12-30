@@ -32,11 +32,11 @@ my $migrate_user = "migrate";
 my $migrate_password = "migrate";
 my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
-my $fc_ip_address = '192.168.1.24';
+my $fromhost = '192.168.1.24';
 my $migrate_ip_address = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fc_ip_address, $my_migrate_ip_address) = @_;
+	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migrate_ip_address) = @_;
 
 	$dataDir = $my_dataDir;
 	$timeout = $my_timeout;
@@ -51,12 +51,12 @@ sub initialize {
 	$migrate_password = $my_migrate_password;
 	$migrate_email_address = $my_migrate_email_address;
 	$fc_admin_email_address = $my_fc_admin_email_address;
-	$fc_ip_address = $my_fc_ip_address;
+	$fromhost = $my_fromhost;
 	$migrate_ip_address = $my_migrate_ip_address;
 }
 
 sub migrate_folder_structure {
-	my($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination) = @_;
+	my($fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination) = @_;
 
 	print print_timestamp() . " : Start Migrating Folder Structure for Account: $fromuser with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
 
@@ -178,7 +178,7 @@ sub migrate_folder_structure {
 }
 
 sub migrate_folders {
-	my($fromhost, $fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email) = @_;
+	my($fromuser, $fromfolder, $tohost, $touser, $topassword, $tofolder, $recursive, $delete_from_destination, $force_update_all_email) = @_;
 
 	print print_timestamp() . " : Start Migrating Folders for Account: $fromuser\n";
 
@@ -309,7 +309,7 @@ sub migrate_folders {
 				}
 			}
 			print print_timestamp() . " : Start syncing email.\n";
-			($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = dir_imap_sync($fromhost, $fromuser, $tohost, $touser, $topassword, $imap_folder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_destination);
+			($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = dir_imap_sync($fromuser, $tohost, $touser, $topassword, $imap_folder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_destination);
 			print print_timestamp() . " : Finished syncing email.\n";
 		}
 	    }
@@ -408,7 +408,7 @@ sub migrate_folders {
 }
 
 sub dir_imap_sync {
-	my ($fromhost, $fromuser, $tohost, $touser, $topassword, $tofolder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_destination) = @_;
+	my ($fromuser, $tohost, $touser, $topassword, $tofolder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_destination) = @_;
 
 	my($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = (0, 0, 0, 0);
 
@@ -1146,7 +1146,7 @@ sub email_to_batch_admin {
 	my $content = join( "", @test ) . "\n";
 
 	my $sender = Email::Send->new({mailer => 'SMTP'});
-	$sender->mailer_args([Host => $fc_ip_address]);
+	$sender->mailer_args([Host => $fromhost]);
 	$sender->send($content);
 
         $send_to = "To: $migrate_email_address\n";
