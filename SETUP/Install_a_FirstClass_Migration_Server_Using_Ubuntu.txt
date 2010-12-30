@@ -70,8 +70,8 @@ sudo mkdir /var/log/migration
 
 --------------------------------------------------------------------------
 
-# install postfix
-sudo apt-get -y install postfix
+# install postfix and procmail
+sudo apt-get -y install postfix procmail
 # choose "Internet Site" for Postfix Configuration
 # set "System mail name": migrate.schoolname.edu
 
