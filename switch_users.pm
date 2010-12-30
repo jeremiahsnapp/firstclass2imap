@@ -14,7 +14,7 @@ use Mail::Message;
 use List::Compare;
 use Date::Manip;
 
-my $dataDir = "/home/migrate/Maildir/.switched_user_rcvd/";
+my $rcvdDir = "/home/migrate/Maildir/.switched_user_rcvd/";
 my $timeout = 300;
 my $searchString = "BA Migrate Script switched_user: ";
 my $max_export_script_size = 20000;
@@ -25,9 +25,9 @@ my $fromhost = '192.168.1.24';
 my $migratehost = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost, $my_domain) = @_;
+	my ($my_rcvdDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost, $my_domain) = @_;
 
-	$dataDir = $my_dataDir;
+	$rcvdDir = $my_rcvdDir;
 	$timeout = $my_timeout;
 	$searchString = $my_searchString;
 	$max_export_script_size = $my_max_export_script_size;
@@ -62,7 +62,7 @@ sub switch_user_to_destination {
 
         email_to_batch_admin ($ba_script_subject, \@ba_script_body);
 
-        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
 	if ($matching_file_arrived) {
 		open (FH, $matching_filename);
@@ -77,7 +77,7 @@ sub switch_user_to_destination {
 	        
 		email_to_batch_admin ($ba_script_subject, \@ba_script_body);
 
-        	my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+        	my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
 		if (grep(/PGAdd\: User \'$fromuser\' updated/, @script_reply)) {
 			print print_timestamp() . " : Restricted the user: \"$fromuser\" in First Class\n";
@@ -124,19 +124,19 @@ sub email_to_batch_admin {
 }
 
 sub wait_for_matching_file_arrival {
-        my ($dataDir, $searchString, $timeout) = @_;
+        my ($rcvdDir, $searchString, $timeout) = @_;
 
-        my $dataDirNew = $dataDir . 'new/';
-        my $dataDirCur = $dataDir . 'cur/';
+        my $rcvdDirNew = $rcvdDir . 'new/';
+        my $rcvdDirCur = $rcvdDir . 'cur/';
 
-        my @original_file_set = glob($dataDirNew . "*");
+        my @original_file_set = glob($rcvdDirNew . "*");
 
         my $filename = eval {
                 local $SIG{ALRM} = sub { die "Timedout\n" }; # \n required
                 alarm $timeout;
 
                 while () {
-                        my @current_file_set = glob($dataDirNew . "*");
+                        my @current_file_set = glob($rcvdDirNew . "*");
 
                         my $lc = List::Compare->new(\@original_file_set, \@current_file_set);
 
@@ -156,7 +156,7 @@ sub wait_for_matching_file_arrival {
 
         # remove html part from body
 
-        open (FH, $dataDirNew . $filename);
+        open (FH, $rcvdDirNew . $filename);
         my $msg = Mail::Message->read(\*FH);
         close FH;
 
@@ -169,13 +169,13 @@ sub wait_for_matching_file_arrival {
             }
         }
 
-        open(FH,'>', $dataDirNew . $filename);
+        open(FH,'>', $rcvdDirNew . $filename);
         $msg->print(\*FH);
         close FH;
 
-        move($dataDirNew . $filename, $dataDirCur);
+        move($rcvdDirNew . $filename, $rcvdDirCur);
 
-        return (1, $dataDirCur . $filename);
+        return (1, $rcvdDirCur . $filename);
 }
 
 sub print_timestamp {

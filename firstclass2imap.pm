@@ -24,7 +24,7 @@ my $debugimap = 0;
 my $to_imaps = 1;
 my $to_authuser = 'admin';
 my $to_authuser_password = 'password';
-my $dataDir = "/home/migrate/Maildir/.ba_rcvd_1/";
+my $rcvdDir = "/home/migrate/Maildir/.ba_rcvd_1/";
 my $timeout = 300;
 my $searchString = "BA Migrate Script 1: ";
 my $max_export_script_size = 20000;
@@ -36,9 +36,9 @@ my $fromhost = '192.168.1.24';
 my $migratehost = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost) = @_;
+	my ($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost) = @_;
 
-	$dataDir = $my_dataDir;
+	$rcvdDir = $my_rcvdDir;
 	$timeout = $my_timeout;
 	$searchString = $my_searchString;
 	$max_export_script_size = $my_max_export_script_size;
@@ -297,7 +297,7 @@ sub migrate_folders {
 
 					email_to_batch_admin($ba_script_subject, $processed_ba_import_script, $content_type);
 
-				        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+				        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
 					if (!$matching_file_arrived) {
 						print print_timestamp() . " : Did NOT receive the completion notice for populating the migrate's inbox with email from Folder: \"$imap_folder\" for Date Range: \"$startdate\" to \"$enddate\" with Size: $size KB.\n";
@@ -565,7 +565,7 @@ sub fc_folder_exists {
 
         email_to_batch_admin ($ba_script_subject, \@ba_script_body);
 
-        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
         if ($matching_file_arrived) {
                 open(FH, $matching_filename);
@@ -627,7 +627,7 @@ sub get_fixed_fc_subfolders {
 
         email_to_batch_admin ($ba_script_subject, \@ba_script_body);
 
-        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
         if ($matching_file_arrived) {
 #      	        print print_timestamp() . " : Found: $matching_filename\n";
@@ -646,7 +646,7 @@ sub get_fixed_fc_subfolders {
 		}
 
 	        email_to_batch_admin ($ba_script_subject, \@ba_script_body);
-	        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+	        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
         	if ($matching_file_arrived) {
 			open(FH, $matching_filename);
@@ -706,7 +706,7 @@ sub get_fixed_fc_subfolders {
 
 					        email_to_batch_admin ($ba_script_subject, \@ba_script_body);
 
-					        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+					        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
 					        if ($matching_file_arrived) {
 				                        open(FH, $matching_filename);
@@ -776,7 +776,7 @@ sub request_ba_import_script {
 
         email_to_batch_admin ($ba_script_subject, \@ba_script_body);
 
-        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
 	return ($matching_file_arrived, $matching_filename);
 }
@@ -998,7 +998,7 @@ sub get_export_filter_date_ranges {
 
         email_to_batch_admin ($ba_script_subject, \@ba_script_body);
 
-        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($dataDir, $searchString, $timeout);
+        my ($matching_file_arrived, $matching_filename) = wait_for_matching_file_arrival ($rcvdDir, $searchString, $timeout);
 
         if ($matching_file_arrived) {
 #               print print_timestamp() . " : Found: $matching_filename\n";
@@ -1160,19 +1160,19 @@ sub email_to_batch_admin {
 }
 
 sub wait_for_matching_file_arrival {
-        my ($dataDir, $searchString, $timeout) = @_;
+        my ($rcvdDir, $searchString, $timeout) = @_;
 
-        my $dataDirNew = $dataDir . 'new/';
-        my $dataDirCur = $dataDir . 'cur/';
+        my $rcvdDirNew = $rcvdDir . 'new/';
+        my $rcvdDirCur = $rcvdDir . 'cur/';
 
-        my @original_file_set = glob($dataDirNew . "*");
+        my @original_file_set = glob($rcvdDirNew . "*");
 
         my $filename = eval {
                 local $SIG{ALRM} = sub { die "Timedout\n" }; # \n required
                 alarm $timeout;
 
                 while () {
-                        my @current_file_set = glob($dataDirNew . "*");
+                        my @current_file_set = glob($rcvdDirNew . "*");
 
                         my $lc = List::Compare->new(\@original_file_set, \@current_file_set);
 
@@ -1192,7 +1192,7 @@ sub wait_for_matching_file_arrival {
 
         # remove html part from body
 
-        open (FH, $dataDirNew . $filename);
+        open (FH, $rcvdDirNew . $filename);
         my $msg = Mail::Message->read(\*FH);
         close FH;
 
@@ -1205,13 +1205,13 @@ sub wait_for_matching_file_arrival {
             }
         }
 
-        open(FH,'>', $dataDirNew . $filename);
+        open(FH,'>', $rcvdDirNew . $filename);
         $msg->print(\*FH);
         close FH;
 
-        move($dataDirNew . $filename, $dataDirCur);
+        move($rcvdDirNew . $filename, $rcvdDirCur);
 
-        return (1, $dataDirCur . $filename);
+        return (1, $rcvdDirCur . $filename);
 }
 
 #--------------------IMAP Stuff-----------------------------------------------------
