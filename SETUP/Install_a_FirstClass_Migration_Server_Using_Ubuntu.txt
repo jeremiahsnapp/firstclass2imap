@@ -70,8 +70,8 @@ sudo mkdir /var/log/migration
 
 --------------------------------------------------------------------------
 
-# install postfix and procmail
-sudo apt-get -y install postfix procmail
+# install postfix
+sudo apt-get -y install postfix
 # choose "Internet Site" for Postfix Configuration
 # set "System mail name": migrate.schoolname.edu
 
@@ -95,6 +95,10 @@ sudo useradd -m -s /sbin/nologin migrate
 sudo mkdir -p /home/migrate/Maildir/{cur,new,tmp}
 sudo chown -R migrate:migrate /home/migrate/Maildir/
 sudo chmod -R 700 /home/migrate/Maildir/
+
+
+# install procmail
+sudo apt-get -y install procmail
 
 
 # forward all email sent to "migrate@migrate.schoolname.edu" to procmail for further processing
