@@ -22,11 +22,11 @@ my $max_export_script_size = 20000;
 my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $fromhost = '192.168.1.24';
-my $migrate_ip_address = '192.168.1.6';
+my $migratehost = '192.168.1.6';
 my $tohost = 'imap.gmail.com';
 
 sub initialize {
-       my ($my_list_of_users_filename, $my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migrate_ip_address, $my_tohost) = @_;
+       my ($my_list_of_users_filename, $my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost, $my_tohost) = @_;
 
 	$list_of_users_filename = $my_list_of_users_filename;
 	$dataDir = $my_dataDir;
@@ -36,7 +36,7 @@ sub initialize {
 	$migrate_email_address = $my_migrate_email_address;
 	$fc_admin_email_address = $my_fc_admin_email_address;
 	$fromhost = $my_fromhost;
-	$migrate_ip_address = $my_migrate_ip_address;
+	$migratehost = $my_migratehost;
        $tohost = $my_tohost;
 }
 
@@ -214,7 +214,7 @@ sub email_to_batch_admin {
 
 	$content = join( "", @test ) . "\n";
 
-	$sender->mailer_args([Host => $migrate_ip_address]);
+	$sender->mailer_args([Host => $migratehost]);
 	$sender->send($content);
 }
 

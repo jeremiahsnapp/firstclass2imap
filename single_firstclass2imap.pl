@@ -45,13 +45,13 @@ my $my_to_authuser_password = 'password';
 my $my_migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $my_fc_admin_email_address = 'administrator@schoolname.edu';
 my $fromhost = '192.168.1.24';
-my $my_migrate_ip_address = '192.168.1.6';
+my $migratehost = '192.168.1.6';
 my $tohost = 'imap.gmail.com';
 my $force_update_all_email = 0;
 my $domain = 'schoolname.edu';
 my $migration_notification_email_address = 'admin@schoolname.edu';
 
-firstclass2imap::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $fromhost, $my_migrate_ip_address);
+firstclass2imap::initialize($my_rcvdDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $fromhost, $migratehost);
 
 # MySQL CONFIG VARIABLES
 my($mysqldb, $mysqluser, $mysqlpassword) = ("migrate", "migrate", "test");

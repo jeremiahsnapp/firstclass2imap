@@ -22,10 +22,10 @@ my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $domain = 'schoolname.edu';
 my $fromhost = '192.168.1.24';
-my $migrate_ip_address = '192.168.1.6';
+my $migratehost = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migrate_ip_address, $my_domain) = @_;
+	my ($my_dataDir, $my_timeout, $my_searchString, $my_max_export_script_size, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost, $my_domain) = @_;
 
 	$dataDir = $my_dataDir;
 	$timeout = $my_timeout;
@@ -34,7 +34,7 @@ sub initialize {
 	$migrate_email_address = $my_migrate_email_address;
 	$fc_admin_email_address = $my_fc_admin_email_address;
 	$fromhost = $my_fromhost;
-	$migrate_ip_address = $my_migrate_ip_address;
+	$migratehost = $my_migratehost;
 	$domain = $my_domain;
 }
 
@@ -119,7 +119,7 @@ sub email_to_batch_admin {
 
 	$content = join( "", @test ) . "\n";
 
-	$sender->mailer_args([Host => $migrate_ip_address]);
+	$sender->mailer_args([Host => $migratehost]);
 	$sender->send($content);
 }
 

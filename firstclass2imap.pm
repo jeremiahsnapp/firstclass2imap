@@ -33,10 +33,10 @@ my $migrate_password = "migrate";
 my $migrate_email_address = 'migrate@migrate.schoolname.edu';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $fromhost = '192.168.1.24';
-my $migrate_ip_address = '192.168.1.6';
+my $migratehost = '192.168.1.6';
 
 sub initialize {
-	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migrate_ip_address) = @_;
+	my ($my_dataDir, $my_timeout, $my_searchString, $my_migrate_user, $my_migrate_password, $my_max_export_script_size, $my_dry_run, $my_debugimap, $my_to_imaps, $my_to_authuser, $my_to_authuser_password, $my_migrate_email_address, $my_fc_admin_email_address, $my_fromhost, $my_migratehost) = @_;
 
 	$dataDir = $my_dataDir;
 	$timeout = $my_timeout;
@@ -52,7 +52,7 @@ sub initialize {
 	$migrate_email_address = $my_migrate_email_address;
 	$fc_admin_email_address = $my_fc_admin_email_address;
 	$fromhost = $my_fromhost;
-	$migrate_ip_address = $my_migrate_ip_address;
+	$migratehost = $my_migratehost;
 }
 
 sub migrate_folder_structure {
@@ -1155,7 +1155,7 @@ sub email_to_batch_admin {
 
 	$content = join( "", @test ) . "\n";
 
-	$sender->mailer_args([Host => $migrate_ip_address]);
+	$sender->mailer_args([Host => $migratehost]);
 	$sender->send($content);
 }
 
