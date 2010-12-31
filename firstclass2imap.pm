@@ -36,6 +36,7 @@ my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $fromhost = '192.168.1.24';
 my $migratehost = '192.168.1.6';
 my $tohost = 'imap.gmail.com';
+my $fc_timezone = 'EST';
 
 sub initialize {
 	my ($instance) = @_;
@@ -62,6 +63,7 @@ sub initialize {
 	$fromhost = $yaml->[0]->{fromhost};
 	$migratehost = $yaml->[0]->{migratehost};
 	$tohost = $yaml->[0]->{tohost};
+       $fc_timezone = $yaml->[0]->{fc_timezone};
 }
 
 sub migrate_folder_structure {
@@ -1025,17 +1027,31 @@ sub get_export_filter_date_ranges {
                                 my $item_size = $5;
                                 my $fcuid = $6;
 
-                                my $calcdate = new Date::Manip::Date;
-                                $calcdate->parse($item_date . " " . $item_time);
+                                my $date;
 
-                                # 2212122496 is the UTC time offset in seconds that FirstClass uses
-                                my $fc_timestamp = -2212122496 + $calcdate->secs_since_1970_GMT();
+                                {
+                                # locally set the timezone for Date::Manip::Date object to the FirstClass server's timezone
+                                local $ENV{TZ} = $fc_timezone;
+                                $date = new Date::Manip::Date;
+                                }
 
-                                # adjust timestamp to the timezone of the firstclass server
-                                $fc_timestamp -= ( 7 * 3600 );
+                                # by locally setting the environment's timezone instead of explicitly setting the
+                                # timezone in the parse function we allow the parse function to correctly determine
+                                # if the timezone needs to be daylight savings timezone or not
+                                $date->parse($item_date . " " . $item_time);
 
-                                # adjust timestamp for daylight savings timezone if needed
-                                $fc_timestamp += ( $calcdate->printf('%Z') =~ /\w+D/ ) ? 3600 : 0; 
+                                # calculate the difference between the given date time and a localized epoch
+                                # using the timezone calculated above ensures that daylight savings timezone will
+                                # be used if necessary
+                                my $local_epoch = new Date::Manip::Date;
+                                $local_epoch->parse('1970-01-01 00:00:00 ' . $date->printf('%N'));
+                                my $delta = $local_epoch->calc($date);
+
+                                # assign the calculated delta in seconds to $fc_timestamp
+                                my $fc_timestamp = $delta->printf('%sys');
+
+                                # adjust the timestamp using -2212122496 which is the offset in seconds that FirstClass uses
+                                $fc_timestamp += -2212122496;
 
                                 $fcuid .= "|$fc_timestamp";
 
