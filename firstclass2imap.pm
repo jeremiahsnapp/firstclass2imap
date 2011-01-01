@@ -492,9 +492,7 @@ sub dir_imap_sync {
 				$datetime->parse($sync_fcuids->{$fcuid}->{'datetime'});
 				$datetime->convert('GMT');
 
-				if ($imap->append_string("$imap_folder", 
-					$pop_msg, '\Seen', 
-					$datetime->printf('%d-%b-%Y %T %z');
+                               if ( $imap->append_string( "$imap_folder", $pop_msg, '\Seen', $datetime->printf('%d-%b-%Y %T %z') ) ) {
 
 					$imap_folder_append++;
 					print print_timestamp() . " : IMAP Appended to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\n";
@@ -551,9 +549,7 @@ sub dir_imap_sync {
 				$datetime->parse($sync_fcuids->{$fcuid}->{'datetime'});
 				$datetime->convert('GMT');
 
-				if ($imap->append_string("$imap_folder", 
-					$pop_msg, '\Seen',
-					$datetime->printf('%d-%b-%Y %T %z');
+                               if ( $imap->append_string( "$imap_folder", $pop_msg, '\Seen', $datetime->printf('%d-%b-%Y %T %z') ) ) {
 
 					$imap_folder_update++;
 					print print_timestamp() . " : IMAP Updated in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
