@@ -988,7 +988,7 @@ sub process_ba_import_script {
 sub get_export_filter_date_ranges {
         my ($max_export_script_size, $fromuser, $fromfolder, $tohost, $touser, $topassword, $imap_folder, $imap_fcuid_msgid, $force_update_all_email) = @_;
 
-        my %date;
+        my %dates;
 	my %sync_fcuids;
 	my $folder_total_size = 0;
         my @imap_fcuid = keys(%$imap_fcuid_msgid);
@@ -1027,25 +1027,25 @@ sub get_export_filter_date_ranges {
                                 my $item_size = $5;
                                 my $fcuid = $6;
 
-                                my $date;
+                                my $datetime;
 
                                 {
                                 # locally set the timezone for Date::Manip::Date object to the FirstClass server's timezone
                                 local $ENV{TZ} = $fc_timezone;
-                                $date = new Date::Manip::Date;
+                                $datetime = new Date::Manip::Date;
                                 }
 
                                 # by locally setting the environment's timezone instead of explicitly setting the
                                 # timezone in the parse function we allow the parse function to correctly determine
                                 # if the timezone needs to be daylight savings timezone or not
-                                $date->parse($item_date . " " . $item_time);
+                                $datetime->parse($item_date . " " . $item_time);
 
                                 # calculate the difference between the given date time and a localized epoch
                                 # using the timezone calculated above ensures that daylight savings timezone will
                                 # be used if necessary
                                 my $local_epoch = new Date::Manip::Date;
-                                $local_epoch->parse('1970-01-01 00:00:00 ' . $date->printf('%N'));
-                                my $delta = $local_epoch->calc($date);
+                                $local_epoch->parse('1970-01-01 00:00:00 ' . $datetime->printf('%N'));
+                                my $delta = $local_epoch->calc($datetime);
 
                                 # assign the calculated delta in seconds to $fc_timestamp
                                 my $fc_timestamp = $delta->printf('%sys');
@@ -1055,9 +1055,9 @@ sub get_export_filter_date_ranges {
 
                                 $fcuid .= "|$fc_timestamp";
 
-                                $date{$item_date}{'size'} += $item_size;
+                                $dates{$item_date}{'size'} += $item_size;
                                 $folder_total_size += $item_size;
-                                $date{$item_date}{'migrate'} = 0;
+                                $dates{$item_date}{'migrate'} = 0;
                                 $sync_fcuids{$fcuid}{'folder'} = $fromfolder;
                                 $sync_fcuids{$fcuid}{'name'} = $item_name;
                                 $sync_fcuids{$fcuid}{'subject'} = $item_subject;
@@ -1073,7 +1073,7 @@ sub get_export_filter_date_ranges {
 		if ($force_update_all_email) {
 			foreach my $fcuid (@fc_fcuid) {
 				print print_timestamp() . " : Force Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'date'} . " " . $sync_fcuids{$fcuid}{'time'} . "\n";
-				$date{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;
+				$dates{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;
 				$sync_fcuids{$fcuid}{'action'} = "update";
 			}
 		}
@@ -1086,14 +1086,14 @@ sub get_export_filter_date_ranges {
 			}
 			foreach my $fcuid ($lc->get_Lonly) {
 				print print_timestamp() . " : Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'date'} . " " . $sync_fcuids{$fcuid}{'time'} . "\n";
-				$date{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;
+				$dates{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;
 				$sync_fcuids{$fcuid}{'action'} = "append";
 			}
 			foreach my $fcuid ($lc->get_intersection) {
 				if ( str2time($sync_fcuids{$fcuid}{'date'} . " " . $sync_fcuids{$fcuid}{'time'}) > str2time($imap_fcuid_msgid->{$fcuid}->{'datetime'}) ) {
 					print print_timestamp() . " : Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'date'} . " " . $sync_fcuids{$fcuid}{'time'} . 
 							"\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
-					$date{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;	
+					$dates{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;	
 					$sync_fcuids{$fcuid}{'action'} = "update";
 				}
 			}
@@ -1101,15 +1101,15 @@ sub get_export_filter_date_ranges {
 
                 my $startdate = "";
 
-		foreach my $date (sort(keys(%date))) {
-			if ($date{$date}{'migrate'}) {
+		foreach my $date (sort(keys(%dates))) {
+			if ($dates{$date}{'migrate'}) {
 				if ($startdate eq "") {
 					$startdate = $date;
 					next;
 				}
-				if (($date{$startdate}{'size'} + $date{$date}{'size'}) < $max_export_script_size) {
-					$date{$startdate}{'size'} += $date{$date}{'size'};
-					delete($date{$date});
+				if (($dates{$startdate}{'size'} + $dates{$date}{'size'}) < $max_export_script_size) {
+					$dates{$startdate}{'size'} += $dates{$date}{'size'};
+					delete($dates{$date});
 				}
 				else {
 					$startdate = $date;
@@ -1120,30 +1120,30 @@ sub get_export_filter_date_ranges {
                         }
 		}
 
-	        my @dates = sort(keys(%date));
+	        my @datelist = sort(keys(%dates));
 
-                for (my $i=0; $i < scalar(@dates); $i++) {
+                for (my $i=0; $i < scalar(@datelist); $i++) {
 			$startdate = "";
 			$enddate = "";
 
-			if ($date{$dates[$i]}{'migrate'}) {
-	                        my $size = $date{$dates[$i]}{'size'};
+			if ($dates{$datelist[$i]}{'migrate'}) {
+	                        my $size = $dates{$datelist[$i]}{'size'};
 	                        $folder_total_size_to_be_migrated += $size;
 
 	                        if ($size < $max_export_script_size) {
-		                        $startdate = $dates[$i];
-        	                        $enddate = $dates[$i+1] if ($i != (scalar(@dates)-1));
+		                        $startdate = $datelist[$i];
+        	                        $enddate = $datelist[$i+1] if ($i != (scalar(@datelist)-1));
 
                 	                push (@export_filter_date_ranges, [$startdate, $enddate, $size]);
 	                       	        print print_timestamp() . " : Migrate email from Folder: \"$fromfolder\" in Date Range: \"$startdate\" to \"$enddate\" with a size of $size KB.\n";
 	                        }
         	                else {
-                	                push (@days_skipped, [$dates[$i], $size]);
-	                       	        print print_timestamp() . " : Skip email in Folder: \"$fromfolder\" from $dates[$i] because the size $size KB is too large.\n";
+                	                push (@days_skipped, [$datelist[$i], $size]);
+	                       	        print print_timestamp() . " : Skip email in Folder: \"$fromfolder\" from $datelist[$i] because the size $size KB is too large.\n";
 	                        }
         	        }
 			else {
-#				print print_timestamp() . " : Skip email in Folder: \"$fromfolder\" from $dates[$i] because the email has already been migrated.\n";
+#				print print_timestamp() . " : Skip email in Folder: \"$fromfolder\" from $datelist[$i] because the email has already been migrated.\n";
 			}
 		}
 		print print_timestamp() . " : Finished evaluating Batch Admin DIR script results for Folder: \"$fromfolder\"\n";
