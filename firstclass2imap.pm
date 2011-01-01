@@ -345,7 +345,7 @@ sub migrate_folders {
 
 		my @folder_missed_fcuids = ();
 		foreach my $fcuid ($lc->get_Lonly) {
-			if ( ($sync_fcuids->{$fcuid}->{'date'} ne "") && ($sync_fcuids->{$fcuid}->{'time'} ne "") ) {
+			if ( $sync_fcuids->{$fcuid}->{'datetime'} ne "" ) {
 
 				# chat transcripts in First Class are handled strangely by batch admin commands which causes the migration process to
 				# expect them to be migrated but the actual migration is impossible
@@ -438,7 +438,7 @@ sub dir_imap_sync {
                 }
         }
 
-	foreach my $fcuid (sort { if (($sync_fcuids->{$a}->{'action'} ne "delete") && ($sync_fcuids->{$b}->{'action'} ne "delete")) {str2time($sync_fcuids->{$a}->{'date'} . " " . $sync_fcuids->{$a}->{'time'}) <=> str2time($sync_fcuids->{$b}->{'date'} . " " . $sync_fcuids->{$b}->{'time'})} } (keys(%$sync_fcuids))) {
+	foreach my $fcuid (sort { if (($sync_fcuids->{$a}->{'action'} ne "delete") && ($sync_fcuids->{$b}->{'action'} ne "delete")) {str2time($sync_fcuids->{$a}->{'datetime'}) <=> str2time($sync_fcuids->{$b}->{'datetime'})} } (keys(%$sync_fcuids))) {
 
 		if ($delete_from_destination && ($sync_fcuids->{$fcuid}->{'action'} eq "delete") ) {
 			print print_timestamp() . " : IMAP Deleting from Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
@@ -454,7 +454,7 @@ sub dir_imap_sync {
 			}
 		}
 		if ($sync_fcuids->{$fcuid}->{'action'} eq "append") {
-			print print_timestamp() . " : IMAP Appending to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'} . "\n";
+			print print_timestamp() . " : IMAP Appending to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\n";
 
 			if ($dry_run) { next; }
 
@@ -488,20 +488,24 @@ sub dir_imap_sync {
                                         }
 				}
 
+				my $datetime = new Date::Manip::Date;
+				$datetime->parse($sync_fcuids->{$fcuid}->{'datetime'});
+				$datetime->convert('GMT');
+
 				if ($imap->append_string("$imap_folder", 
 					$pop_msg, '\Seen', 
-					UnixDate(ParseDateString("epoch " . str2time($sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'})),'%d-%b-%Y %T %z'))) {
+					$datetime->printf('%d-%b-%Y %T %z');
 
 					$imap_folder_append++;
-					print print_timestamp() . " : IMAP Appended to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'} . "\n";
+					print print_timestamp() . " : IMAP Appended to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\n";
 				}
 				else {
-					print print_timestamp() . " : IMAP Failed to Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'} . "\n";
+					print print_timestamp() . " : IMAP Failed to Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\n";
 				}
 			}
 		}
 		if ($sync_fcuids->{$fcuid}->{'action'} eq "update") {
-			print print_timestamp() . " : IMAP Updating in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+			print print_timestamp() . " : IMAP Updating in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
 
 			if ($dry_run) { next; }
 
@@ -543,15 +547,19 @@ sub dir_imap_sync {
                                         }
 				}
 
+				my $datetime = new Date::Manip::Date;
+				$datetime->parse($sync_fcuids->{$fcuid}->{'datetime'});
+				$datetime->convert('GMT');
+
 				if ($imap->append_string("$imap_folder", 
 					$pop_msg, '\Seen',
-					UnixDate(ParseDateString("epoch " . str2time($sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'})),'%d-%b-%Y %T %z'))) {
+					$datetime->printf('%d-%b-%Y %T %z');
 
 					$imap_folder_update++;
-					print print_timestamp() . " : IMAP Updated in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+					print print_timestamp() . " : IMAP Updated in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
 				}
 				else {
-					print print_timestamp() . " : IMAP Failed to Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'date'} . " " . $sync_fcuids->{$fcuid}->{'time'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+					print print_timestamp() . " : IMAP Failed to Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
 				}
 			}
 		}
@@ -1062,7 +1070,7 @@ sub get_export_filter_date_ranges {
                                 $sync_fcuids{$fcuid}{'name'} = $item_name;
                                 $sync_fcuids{$fcuid}{'subject'} = $item_subject;
                                 $sync_fcuids{$fcuid}{'date'} = $item_date;
-                                $sync_fcuids{$fcuid}{'time'} = $item_time;
+                                $sync_fcuids{$fcuid}{'datetime'} = $datetime->printf('%d-%b-%Y %T %z');
                                 $sync_fcuids{$fcuid}{'action'} = "skip";
                         }
                 }
@@ -1072,7 +1080,7 @@ sub get_export_filter_date_ranges {
 
 		if ($force_update_all_email) {
 			foreach my $fcuid (@fc_fcuid) {
-				print print_timestamp() . " : Force Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'date'} . " " . $sync_fcuids{$fcuid}{'time'} . "\n";
+				print print_timestamp() . " : Force Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . "\n";
 				$dates{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;
 				$sync_fcuids{$fcuid}{'action'} = "update";
 			}
@@ -1085,13 +1093,13 @@ sub get_export_filter_date_ranges {
 				$sync_fcuids{$fcuid}{'action'} = "delete";
 			}
 			foreach my $fcuid ($lc->get_Lonly) {
-				print print_timestamp() . " : Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'date'} . " " . $sync_fcuids{$fcuid}{'time'} . "\n";
+				print print_timestamp() . " : Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . "\n";
 				$dates{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;
 				$sync_fcuids{$fcuid}{'action'} = "append";
 			}
 			foreach my $fcuid ($lc->get_intersection) {
-				if ( str2time($sync_fcuids{$fcuid}{'date'} . " " . $sync_fcuids{$fcuid}{'time'}) > str2time($imap_fcuid_msgid->{$fcuid}->{'datetime'}) ) {
-					print print_timestamp() . " : Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'date'} . " " . $sync_fcuids{$fcuid}{'time'} . 
+				if ( str2time($sync_fcuids{$fcuid}{'datetime'}) > str2time($imap_fcuid_msgid->{$fcuid}->{'datetime'}) ) {
+					print print_timestamp() . " : Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . 
 							"\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
 					$dates{$sync_fcuids{$fcuid}{'date'}}{'migrate'} = 1;	
 					$sync_fcuids{$fcuid}{'action'} = "update";
