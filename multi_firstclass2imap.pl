@@ -96,7 +96,12 @@ while ($count < 22) {
                system("mkdir /var/log/migration/$fromuser");
         }
 
-        open(STDOUT, '>', "/var/log/migration/$fromuser/$fromuser." . $migrated) or die "Can't redirect STDOUT: $!";
+        my $ulog_counter = 1;
+        while ( -e "/var/log/migration/$fromuser/$fromuser.$ulog_counter" ) {
+               $ulog_counter++;
+        }
+
+        open(STDOUT, '>', "/var/log/migration/$fromuser/$fromuser.$ulog_counter") or die "Can't redirect STDOUT: $!";
         open(STDERR, ">&STDOUT")                  or die "Can't dup STDOUT: $!";
 
 	system("rm -rf $rcvdDir");
