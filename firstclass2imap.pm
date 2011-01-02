@@ -23,7 +23,7 @@ use Date::Manip;
 my $dry_run = 0;
 my $destination_folder_deletion = 0;
 my $destination_email_deletion = 0;
-my $debugimap = 0;
+my $debug_imap = 0;
 my $to_imaps = 1;
 my $to_authuser = 'admin';
 my $to_authuser_password = 'password';
@@ -52,7 +52,7 @@ sub initialize {
 	$dry_run = $yaml->[0]->{dry_run};
 	$destination_folder_deletion = $yaml->[0]->{destination_folder_deletion};
 	$destination_email_deletion = $yaml->[0]->{destination_email_deletion};
-	$debugimap = $yaml->[0]->{debugimap};
+       $debug_imap = $yaml->[0]->{debug_imap};
 	$to_imaps = $yaml->[0]->{to_imaps};
 	$to_authuser = $yaml->[0]->{to_authuser};
 	$to_authuser_password = $yaml->[0]->{to_authuser_password};
@@ -80,6 +80,16 @@ sub migrate_folder_structure {
 	my $starttime = time();
 	my $lasttime = $starttime;
 	my $elapsed_time = "";
+
+        my $imap = create_imap_client($tohost, $touser, $topassword);
+       if ( $imap->LastError ) {
+               ($elapsed_time, $lasttime) = elapsed_time($starttime);
+               print print_timestamp() . " : Connection to the destination imap server failed with the following error.\n";
+               print print_timestamp() . " : " . $imap->LastError . "\n";
+               print print_timestamp() . " : Failed to Migrate Folder Structure for Account: $fromuser\n";
+               return 0;
+       }
+       $imap->logout;
 
 	my @from_folders_list;
 
@@ -127,7 +137,7 @@ sub migrate_folder_structure {
 
 	my($lc) = List::Compare->new('-i', \@from_folders_list_converted, \@to_folders_list);
 
-        my $imap = create_imap_client($tohost, $touser, $topassword, $debugimap);
+        $imap = create_imap_client($tohost, $touser, $topassword);
 
 	foreach my $imap_folder (sort({ lc($a) cmp lc($b) } $lc->get_Lonly)) {
 		print print_timestamp() . " : Creating Folder: $imap_folder\n";
@@ -162,7 +172,7 @@ sub migrate_folder_structure {
 		}
 	}
 
-	$imap->close();
+       $imap->logout;
 
 	$fc_total_folders = @from_folders_list;
 
@@ -205,6 +215,16 @@ sub migrate_folders {
 	my($imap_account_skip, $imap_account_append, $imap_account_delete, $imap_account_update, $imap_account_total_fcuids) = (0, 0, 0, 0, 0);
 	my($account_total_size, $account_total_size_to_be_migrated) = (0, 0);
 	my %missed_fcuids;
+
+        my $imap = create_imap_client($tohost, $touser, $topassword);
+        if ( $imap->LastError ) {
+                ($elapsed_time, $lasttime) = elapsed_time($starttime);
+                print print_timestamp() . " : Connection to the destination imap server failed with the following error.\n";
+                print print_timestamp() . " : " . $imap->LastError . "\n";
+               print print_timestamp() . " : Failed to Migrate Folders for Account: $fromuser\n";
+               return (0, $dir_account_total_fcuids, $imap_account_total_fcuids);
+        }
+        $imap->logout;
 
 	my @from_folders_list;
 
@@ -329,7 +349,7 @@ sub migrate_folders {
 		}
 	    }
 
-		my $imap = create_imap_client($tohost, $touser, $topassword, $debugimap);
+               my $imap = create_imap_client($tohost, $touser, $topassword);
 
 		$imap->select($imap_folder);
 
@@ -342,7 +362,7 @@ sub migrate_folders {
                                 $imap_folder_total_fcuids++;
                         }
 	        }
-		$imap->close;
+               $imap->logout;
 
 		my($lc) = List::Compare->new(\@dir_fcuids, \@imap_fcuids);
 		$folder_missed_fcuids_count = $lc->get_Lonly;
@@ -427,7 +447,7 @@ sub dir_imap_sync {
 
 	my($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = (0, 0, 0, 0);
 
-	my $imap = create_imap_client($tohost, $touser, $topassword, $debugimap);
+       my $imap = create_imap_client($tohost, $touser, $topassword);
 	my $mgr  = Mail::Box::Manager->new;
 
 	my $pop_mailbox = $mgr->open(type => 'pop3', username => $migrate_user, password => $migrate_password, server_name => $fromhost);
@@ -1266,7 +1286,7 @@ sub get_imap_fcuid_msgid_hash {
         my ($tohost, $touser, $topassword, $imap_folder) = @_;
 
         my %imap_fcuid_msgid_hash;
-        my $imap = create_imap_client($tohost, $touser, $topassword, $debugimap);
+        my $imap = create_imap_client($tohost, $touser, $topassword);
 
 	$imap->select($imap_folder);
 
@@ -1280,7 +1300,7 @@ sub get_imap_fcuid_msgid_hash {
 			$imap_fcuid_msgid_hash{$imap->get_header($uid, "FC-UNIQUE-ID")}{'datetime'} = $hash_ref->{$uid}->{'INTERNALDATE'};
 		}
 	}
-        $imap->close;
+        $imap->logout;
 
 	return \%imap_fcuid_msgid_hash;
 }
@@ -1300,13 +1320,13 @@ sub get_imap_folders_list {
                        push(@imap_folders_list, $1);
 		}
 	}
-	$imap->close;
+       $imap->logout;
 
         return sort({ lc($a) cmp lc($b) } @imap_folders_list);
 }
 
 sub create_imap_client {
-        my ($host, $user, $password, $debugimap) = @_;
+        my ($host, $user, $password) = @_;
 
         my $imap;
 
@@ -1322,19 +1342,19 @@ sub create_imap_client {
                 $password = $to_authuser_password;
         }
 
-###$debugimap = 1;
         $imap = Mail::IMAPClient->new(
                     Clear => (20),
-                    Server => ($host),
                     Port => ($port),
                     Uid => (1),
                     Peek => (1),
-                    Debug => ($debugimap),
+                    Debug => ($debug_imap),
                     Buffer => (4096),
                     Ssl => ($to_imaps)
                 );
 
-        $debugimap && print print_timestamp() . " : IMAP Connected: " . ($imap->IsConnected ? "True" : "False") . "\n";
+        $imap->Server($host);
+        $imap->connect;
+        return $imap if ( ! $imap->IsConnected );
 
         $imap->Authmechanism($authmech);
         $imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
@@ -1344,7 +1364,6 @@ sub create_imap_client {
         $imap->Password($password);
 
         $imap->login();
-        $debugimap && print print_timestamp() . " : IMAP Authenticated: " . ($imap->IsAuthenticated ? "True" : "False") . "\n";
 
         return $imap;
 }
