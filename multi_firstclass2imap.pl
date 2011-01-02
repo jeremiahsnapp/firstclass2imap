@@ -110,10 +110,7 @@ while ($count < 22) {
 		my $missed_folders;
 		my $missed_fcuids;
 
-		my $delete_from_destination = 0;
-###		$delete_from_destination = 1 if (!$switched);
-
-		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromuser, $fromfolder, $touser, $topassword, $recursive, $delete_from_destination);
+		($migrated_folder_structure, $fc_folder_count, $destination_folder_count, $missed_folders) = firstclass2imap::migrate_folder_structure($fromuser, $fromfolder, $touser, $topassword, $recursive);
 
 		if (!$migrated_folder_structure) {
 			$sth = $dbh->prepare ("UPDATE usermap SET migrating = 0, broken = 1 WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
@@ -124,7 +121,7 @@ while ($count < 22) {
 			next;
 		}
 
-		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromuser, $fromfolder, $touser, $topassword, $recursive, $delete_from_destination, $force_update_all_email);
+		($migrated_folders, $dir_account_total_fcuids, $imap_account_total_fcuids, $missed_fcuids) = firstclass2imap::migrate_folders($fromuser, $fromfolder, $touser, $topassword, $recursive, $force_update_all_email);
 
 		if ($migrated_folder_structure && $migrated_folders) {
 			$missed_folders_count = @$missed_folders;

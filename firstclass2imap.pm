@@ -21,6 +21,8 @@ use Date::Parse;
 use Date::Manip;
 
 my $dry_run = 0;
+my $destination_folder_deletion = 0;
+my $destination_email_deletion = 0;
 my $debugimap = 0;
 my $to_imaps = 1;
 my $to_authuser = 'admin';
@@ -48,6 +50,8 @@ sub initialize {
 	$yaml = YAML::Tiny->read( 'migration.cfg' );
 
 	$dry_run = $yaml->[0]->{dry_run};
+	$destination_folder_deletion = $yaml->[0]->{destination_folder_deletion};
+	$destination_email_deletion = $yaml->[0]->{destination_email_deletion};
 	$debugimap = $yaml->[0]->{debugimap};
 	$to_imaps = $yaml->[0]->{to_imaps};
 	$to_authuser = $yaml->[0]->{to_authuser};
@@ -67,9 +71,9 @@ sub initialize {
 }
 
 sub migrate_folder_structure {
-	my($fromuser, $fromfolder, $touser, $topassword, $recursive, $delete_from_destination) = @_;
+	my($fromuser, $fromfolder, $touser, $topassword, $recursive) = @_;
 
-	print print_timestamp() . " : Start Migrating Folder Structure for Account: $fromuser with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
+	print print_timestamp() . " : Start Migrating Folder Structure for Account: $fromuser with Destination Folder Deletion: " . ($destination_folder_deletion ? "Enabled\n" : "Disabled\n");
 
 	my($fc_total_folders, $imap_created_folders, $imap_deleted_folders, $imap_total_folders) = (0, 0, 0, 0);
 	
@@ -142,7 +146,7 @@ sub migrate_folder_structure {
 		}
 	} 
 
-	if ($delete_from_destination) {
+	if ($destination_folder_deletion) {
 		foreach my $imap_folder (sort({ lc($b) cmp lc($a) } $lc->get_Ronly)) {
 			print print_timestamp() . " : Deleting Folder: $imap_folder\n";
 
@@ -189,7 +193,7 @@ sub migrate_folder_structure {
 }
 
 sub migrate_folders {
-	my($fromuser, $fromfolder, $touser, $topassword, $recursive, $delete_from_destination, $force_update_all_email) = @_;
+	my($fromuser, $fromfolder, $touser, $topassword, $recursive, $force_update_all_email) = @_;
 
 	print print_timestamp() . " : Start Migrating Folders for Account: $fromuser\n";
 
@@ -239,7 +243,7 @@ sub migrate_folders {
 	foreach my $fc_folder (@from_folders_list) {
 		my $imap_folder = convert_folder_names_fc_to_imap($fc_folder);
 
-		print print_timestamp() . " : Start Migrating Folder: $imap_folder with" . ($delete_from_destination?" ":"out ") . "deletion from destination\n";
+		print print_timestamp() . " : Start Migrating Folder: $imap_folder with Destination Email Deletion: " . ($destination_email_deletion ? "Enabled\n" : "Disabled\n");
 
 		my($folder_missed_fcuids_count, $dir_folder_skip, $dir_folder_append, $dir_folder_delete, $dir_folder_update, $dir_folder_total_fcuids) = (0, 0, 0, 0, 0, 0);
 		my($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update, $imap_folder_total_fcuids) = (0, 0, 0, 0, 0);
@@ -264,7 +268,7 @@ sub migrate_folders {
 		foreach my $fcuid (keys(%$sync_fcuids)) {
 			$dir_folder_skip++ if ($sync_fcuids->{$fcuid}->{'action'} eq "skip");
 			$dir_folder_append++ if ($sync_fcuids->{$fcuid}->{'action'} eq "append");
-			$dir_folder_delete++ if ( $delete_from_destination && ($sync_fcuids->{$fcuid}->{'action'} eq "delete") );
+			$dir_folder_delete++ if ($sync_fcuids->{$fcuid}->{'action'} eq "delete");
 			$dir_folder_update++ if ($sync_fcuids->{$fcuid}->{'action'} eq "update");
 			push(@dir_fcuids, $fcuid);
 		}
@@ -320,7 +324,7 @@ sub migrate_folders {
 				}
 			}
 			print print_timestamp() . " : Start syncing email.\n";
-			($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = dir_imap_sync($fromuser, $tohost, $touser, $topassword, $imap_folder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_destination);
+			($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = dir_imap_sync($fromuser, $tohost, $touser, $topassword, $imap_folder, $sync_fcuids, $imap_fcuid_msgid, $attachments);
 			print print_timestamp() . " : Finished syncing email.\n";
 		}
 	    }
@@ -419,7 +423,7 @@ sub migrate_folders {
 }
 
 sub dir_imap_sync {
-	my ($fromuser, $tohost, $touser, $topassword, $imap_folder, $sync_fcuids, $imap_fcuid_msgid, $attachments, $delete_from_destination) = @_;
+	my ($fromuser, $tohost, $touser, $topassword, $imap_folder, $sync_fcuids, $imap_fcuid_msgid, $attachments) = @_;
 
 	my($imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update) = (0, 0, 0, 0);
 
@@ -442,7 +446,7 @@ sub dir_imap_sync {
        # grouped into conversations or threads
        foreach my $fcuid ( sort { str2time( $sync_fcuids->{$a}->{'datetime'} ) <=> str2time( $sync_fcuids->{$b}->{'datetime'} ) } ( keys( %$sync_fcuids ) ) ) {
 
-		if ($delete_from_destination && ($sync_fcuids->{$fcuid}->{'action'} eq "delete") ) {
+		if ( $sync_fcuids->{$fcuid}->{'action'} eq "delete" ) {
                        print print_timestamp() . " : IMAP Deleting from Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\n";
 
 			if ($dry_run) { next; }
@@ -1084,15 +1088,17 @@ sub get_export_filter_date_ranges {
 			}
 		}
 		else {
-			my($lc) = List::Compare->new(\@fc_fcuid, \@imap_fcuid);
+                       my($lc) = List::Compare->new(\@fc_fcuid, \@imap_fcuid);
 
-                       my @fc_fcuid_delete = sort( { str2time( $imap_fcuid_msgid->{$a}->{'datetime'} ) <=> str2time( $imap_fcuid_msgid->{$b}->{'datetime'} ) } ( $lc->get_Ronly ) );
+                       if ( $destination_email_deletion ) {
+                                my @fc_fcuid_delete = sort( { str2time( $imap_fcuid_msgid->{$a}->{'datetime'} ) <=> str2time( $imap_fcuid_msgid->{$b}->{'datetime'} ) } ( $lc->get_Ronly ) );
 
-                       foreach my $fcuid (@fc_fcuid_delete) {
-				print print_timestamp() . " : Delete from Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
-                                $sync_fcuids{$fcuid}{'datetime'} = $imap_fcuid_msgid->{$fcuid}->{'datetime'};
-				$sync_fcuids{$fcuid}{'action'} = "delete";
-			}
+                                foreach my $fcuid (@fc_fcuid_delete) {
+					print print_timestamp() . " : Delete from Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+                                	$sync_fcuids{$fcuid}{'datetime'} = $imap_fcuid_msgid->{$fcuid}->{'datetime'};
+					$sync_fcuids{$fcuid}{'action'} = "delete";
+				}
+                       }
 
                        my @fc_fcuid_append = sort( { str2time( $sync_fcuids{$a}{'datetime'} ) <=> str2time( $sync_fcuids{$b}{'datetime'} ) } ( $lc->get_Lonly ) );
 
