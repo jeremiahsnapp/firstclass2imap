@@ -22,8 +22,10 @@
 	new email system password, defaults to empty string, shouldn't be needed in most migration scenarios
   `recursive` tinyint(1) NOT NULL default '0',
 	boolean value, identifies whether to migrate all subfolders
-  `migrating` tinyint(1) NOT NULL default '0',
-	boolean value, identifies if this account is currently being migrated
+  `migrating` varchar(255) collate utf8_unicode_ci default '0',
+	identifies if this what FirstClass server IP address and script Instance is being used to migrate an account
+        a NULL or zero value indicates the account is not being migrated
+        this field is also used for the migration scripts to determine if a migration Instance is already in use
   `migrated` int(11) NOT NULL default '0',
 	counts the number of times the migration process has been run for this account
   `time_migrated` timestamp NULL default NULL,

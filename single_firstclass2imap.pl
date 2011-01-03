@@ -22,13 +22,6 @@ if (@ARGV != 2) {
 my $instance = shift(@ARGV);
 my $fc_user = shift(@ARGV);
 
-my @procs = `ps ax`;
-if ( grep(/firstclass2imap.pl\s+$instance/, @procs) > 1 ) {
-    print "Instance $instance is already running.\n";
-    print "Choose a different value for 'instance'.\n";
-    exit();
-}
-
 # Create a YAML file
 my $yaml = YAML::Tiny->new;
 
@@ -40,16 +33,31 @@ my $sentDir = $yaml->[0]->{mailDir} . ".ba_sent_$instance/";
 my $force_update_all_email = $yaml->[0]->{force_update_all_email};
 my $domain = $yaml->[0]->{domain};
 my $migration_notification_email_address = $yaml->[0]->{migration_notification_email_address};
+my $fromhost = $yaml->[0]->{fromhost};
 my $dbname = $yaml->[0]->{dbname};
+my $dbhost = $yaml->[0]->{dbhost};
 my $dbuser = $yaml->[0]->{dbuser};
 my $dbpassword = $yaml->[0]->{dbpassword};
 
 firstclass2imap::initialize($instance);
 
 # PERL Database CONNECT
-my($dbh) = DBI->connect("DBI:mysql:$dbname", $dbuser, $dbpassword) or die "Couldn't connect to database: " . DBI->errstr;
+my($dbh) = DBI->connect("DBI:mysql:$dbname:$dbhost", $dbuser, $dbpassword) or die "Couldn't connect to database: " . DBI->errstr;
 
 $dbh->{mysql_auto_reconnect} = 1;
+
+my($sth) = $dbh->prepare("SELECT migrating FROM usermap WHERE migrating = '$fromhost:$instance'");
+$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
+
+my($row_exists) = $sth->fetch;
+
+$sth->finish;
+
+if ( @$row_exists[0] ) {
+    print "Instance $instance is already running against the FirstClass server $fromhost.\n";
+    print "Choose a different value for 'instance'.\n";
+    exit();
+}
 
 my $count = 0;
 
@@ -79,11 +87,11 @@ while ($count < 1) {
 
         $sth->finish;
 
-        if ( $fromuser eq "" ) {
+        if ( ! $fromuser ) {
             print "Unable to find an account in the database to migrate.\n";
             exit;
         }
-        if ( $migrating == 1 ) {
+        if ( $migrating ) {
             print "The user $fc_user is already being migrated.\n";
             exit;
         }
@@ -113,8 +121,8 @@ while ($count < 1) {
 	system("rm -rf $rcvdDir");
 	system("rm -rf $sentDir");
 
-	$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), migrating = 1, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
-	if ($sth->execute( $migrated, $fromuser, $touser, $fromfolder )) {
+	$sth = $dbh->prepare ("UPDATE usermap SET time_migrated = NOW(), migrating = ?, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
+	if ($sth->execute( "$fromhost:$instance", $migrated, $fromuser, $touser, $fromfolder )) {
                 $sth->finish;
 		my($migrated_folder_structure, $migrated_folders, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids) = (0, 0, 0, 0, 0, 0);
 		my ($missed_folders_count, $missed_fcuids_count) = (0, 0);

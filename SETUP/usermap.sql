@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `usermap` (
   `touser` varchar(255) collate utf8_unicode_ci NOT NULL,
   `topassword` varchar(255) collate utf8_unicode_ci default NULL,
   `recursive` tinyint(1) NOT NULL default '0',
-  `migrating` tinyint(1) NOT NULL default '0',
+  `migrating` varchar(255) collate utf8_unicode_ci default '0',
   `migrated` int(11) NOT NULL default '0',
   `time_migrated` timestamp NULL default NULL,
   `duration` int(11) NOT NULL default '0',
