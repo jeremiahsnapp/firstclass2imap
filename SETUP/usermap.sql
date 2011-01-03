@@ -27,9 +27,9 @@ CREATE TABLE `usermap` (
   `duration` int(11) NOT NULL DEFAULT '0',
   `percent_complete` int(11) NOT NULL DEFAULT '0',
   `fc_folder_count` int(11) NOT NULL DEFAULT '0',
-  `zimbra_folder_count` int(11) NOT NULL DEFAULT '0',
+  `destination_folder_count` int(11) NOT NULL DEFAULT '0',
   `fc_fcuid_count` int(11) NOT NULL DEFAULT '0',
-  `zimbra_fcuid_count` int(11) NOT NULL DEFAULT '0',
+  `destination_fcuid_count` int(11) NOT NULL DEFAULT '0',
   `missed_folders_count` int(11) NOT NULL DEFAULT '0',
   `missed_fcuids_count` int(11) NOT NULL DEFAULT '0',
   `account_size` int(11) NOT NULL DEFAULT '0'
