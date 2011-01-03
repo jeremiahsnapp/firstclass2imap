@@ -10,15 +10,17 @@ use YAML::Tiny;
 use firstclass2imap;
 use Date::Manip;
 
-if (@ARGV != 1) {
-        print "Usage: ./multi_firstclass2imap.pl <instance>\n\n";
+if (@ARGV < 1) {
+        print "Usage: ./firstclass2imap.pl <instance> [fc_user]\n\n";
         print "Where <instance> is a number representing the migration account in First Class that will be used.\n\n";
-        print "Example: ./multi_firstclass2imap.pl 1\n\n";
+        print "[fc_user] is optional but when set will cause the script to only migrate the firstclass user specified.\n\n";
+        print "Example: ./firstclass2imap.pl 1 [fc_user]\n\n";
 
         exit;
 }
 
 my $instance = shift(@ARGV);
+my $fc_user = shift(@ARGV);
 
 # Create a YAML file
 my $yaml = YAML::Tiny->new;
@@ -61,10 +63,10 @@ my $count = 0;
 
 # you can use $count to limit the number of accounts you want to migrate
 # it can be helpful during testing to limit the number to a single account
-while ($count < 22) {
+#while ($count < 20) {
 
 # when you are ready to migrate all accounts you can remove the "while" condition
-###while () {
+while () {
 
 	my $starttime = time();
 	my $lasttime = $starttime;
@@ -74,8 +76,15 @@ while ($count < 22) {
        my ($switched, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating) =
                (0, "", "", "", "", 0, 0, 0);
 
+        my $sth;
+        if ( $fc_user ) {
+# this query is helpful during testing ... it limits the migration to a specific account
+            $sth = $dbh->prepare("SELECT switched, fromuser, fromfolder, touser, topassword, recursive, migrated, migrating FROM usermap WHERE fromuser = '$fc_user'");
+        }
+        else {
 # this query is for when you are ready to migrate all accounts
-       my($sth) = $dbh->prepare("SELECT switched, fromuser, fromfolder, touser, topassword, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+            $sth = $dbh->prepare("SELECT switched, fromuser, fromfolder, touser, topassword, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+        }
 
 	$sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
@@ -87,6 +96,10 @@ while ($count < 22) {
 
         if ( ! $fromuser ) {
             print "Unable to find an account in the database to migrate.\n";
+            exit;
+        }
+        if ( $migrating ) {
+            print "The user $fc_user is already being migrated.\n";
             exit;
         }
 
@@ -131,6 +144,7 @@ while ($count < 22) {
                         $sth->finish;
 
 			$count++;
+                        last if ( $fc_user );
 			next;
 		}
 
@@ -221,6 +235,7 @@ while ($count < 22) {
 	}
         $sth->finish;
 	$count++;
+        last if ( $fc_user );
 }
 
 sub pretty_print {
