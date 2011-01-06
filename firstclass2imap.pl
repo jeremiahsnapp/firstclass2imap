@@ -59,7 +59,11 @@ if ( @$row_exists[0] ) {
     exit();
 }
 
+$SIG{'INT'}  = 'exit_gracefully';
+$SIG{'TERM'} = 'exit_gracefully';
+
 my $count = 0;
+my ( $switched, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating );
 
 # you can use $count to limit the number of accounts you want to migrate
 # it can be helpful during testing to limit the number to a single account
@@ -73,7 +77,7 @@ while () {
     my $elapsed_time      = "";
     my $elapsed_time_secs = "";
 
-    my ( $switched, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating ) =
+    ( $switched, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating ) =
       ( 0, "", "", "", "", 0, 0, 0 );
 
     my $sth;
@@ -235,6 +239,17 @@ while () {
     $sth->finish;
     $count++;
     last if ($fc_user);
+}
+
+sub exit_gracefully {
+    my $status = "$fromhost:$instance : Migration instance was killed.";
+
+    $sth = $dbh->prepare("UPDATE usermap SET migrating = 0, status = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
+    $sth->execute( $status, $fromuser, $touser, $fromfolder );
+    $sth->finish;
+
+    print print_timestamp() . " : $status\n";
+    exit (0);
 }
 
 sub pretty_print {
