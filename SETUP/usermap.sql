@@ -32,6 +32,11 @@ CREATE TABLE `usermap` (
         /*
         boolean value, manually set, identifies accounts that should be migrated
         */
+    `force_update_all_email` tinyint(1) NOT NULL default '0',
+        /*
+        boolean value, manually set, when set will force an update of all migrated email in the destination account
+        Typically this should be left disabled
+        */
     `migration_complete` tinyint(1) NOT NULL default '0',
         /*
         boolean value, automatically set, identifies accounts that have been migrated successfully

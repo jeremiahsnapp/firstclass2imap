@@ -30,7 +30,6 @@ $yaml = YAML::Tiny->read('migration.cfg');
 
 my $rcvdDir                = $yaml->[0]->{mailDir} . ".ba_rcvd_$instance/";
 my $sentDir                = $yaml->[0]->{mailDir} . ".ba_sent_$instance/";
-my $force_update_all_email = $yaml->[0]->{force_update_all_email};
 my $domain                 = $yaml->[0]->{domain};
 my $migration_notification_email_address = $yaml->[0]->{migration_notification_email_address};
 my $fromhost   = $yaml->[0]->{fromhost};
@@ -63,7 +62,7 @@ $SIG{'INT'}  = 'exit_gracefully';
 $SIG{'TERM'} = 'exit_gracefully';
 
 my $count = 0;
-my ( $switched, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating );
+my ( $switched, $force_update_all_email, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating );
 
 # you can use $count to limit the number of accounts you want to migrate
 # it can be helpful during testing to limit the number to a single account
@@ -77,22 +76,22 @@ while () {
     my $elapsed_time      = "";
     my $elapsed_time_secs = "";
 
-    ( $switched, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating ) =
-      ( 0, "", "", "", "", 0, 0, 0 );
+    ( $switched, $force_update_all_email, $fromuser, $fromfolder, $touser, $topassword, $recursive, $migrated, $migrating ) =
+      ( 0, 0, "", "", "", "", 0, 0, 0 );
 
     my $sth;
     if ($fc_user) {
         # this query is helpful during testing ... it limits the migration to a specific account
-        $sth = $dbh->prepare("SELECT switched, fromuser, fromfolder, touser, topassword, recursive, migrated, migrating FROM usermap WHERE fromuser = '$fc_user'");
+        $sth = $dbh->prepare("SELECT switched, force_update_all_email, fromuser, fromfolder, touser, topassword, recursive, migrated, migrating FROM usermap WHERE fromuser = '$fc_user'");
     }
     else {
         # this query is for when you are ready to migrate all accounts
-        $sth = $dbh->prepare("SELECT switched, fromuser, fromfolder, touser, topassword, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
+        $sth = $dbh->prepare("SELECT switched, force_update_all_email, fromuser, fromfolder, touser, topassword, recursive, migrated, migrating FROM usermap WHERE broken = 0 AND migration_complete = 0 AND migrating = 0 AND migrate = 1 ORDER BY migrated ASC, account_size ASC");
     }
 
     $sth->execute() or die "Couldn't execute SELECT statement: " . $sth->errstr;
 
-    $sth->bind_columns( \$switched, \$fromuser, \$fromfolder, \$touser, \$topassword, \$recursive, \$migrated, \$migrating );
+    $sth->bind_columns( \$switched, \$force_update_all_email, \$fromuser, \$fromfolder, \$touser, \$topassword, \$recursive, \$migrated, \$migrating );
 
     $sth->fetchrow_hashref;
 

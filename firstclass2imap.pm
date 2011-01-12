@@ -1022,6 +1022,7 @@ sub get_export_filter_date_ranges {
     my %sync_fcuids;
     my $folder_total_size = 0;
     my @imap_fcuid        = keys(%$imap_fcuid_msgid);
+    my $startdate = "";
     my $enddate           = "";
     my @export_filter_date_ranges;
     my @days_skipped;
@@ -1100,47 +1101,43 @@ sub get_export_filter_date_ranges {
 
         my @fc_fcuid = sort( { str2time( $sync_fcuids{$a}{'datetime'} ) <=> str2time( $sync_fcuids{$b}{'datetime'} ) } ( keys(%sync_fcuids) ) );
 
-        if ($force_update_all_email) {
-            foreach my $fcuid (@fc_fcuid) {
+        my ($lc) = List::Compare->new( \@fc_fcuid, \@imap_fcuid );
+
+        if ($destination_email_deletion) {
+            my @fc_fcuid_delete = sort( { str2time( $imap_fcuid_msgid->{$a}->{'datetime'} ) <=> str2time( $imap_fcuid_msgid->{$b}->{'datetime'} ) } ( $lc->get_Ronly ) );
+
+            foreach my $fcuid (@fc_fcuid_delete) {
+                print print_timestamp() . " : Delete from Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+                $sync_fcuids{$fcuid}{'datetime'} = $imap_fcuid_msgid->{$fcuid}->{'datetime'};
+                $sync_fcuids{$fcuid}{'action'} = "delete";
+            }
+        }
+
+        my @fc_fcuid_append = sort( { str2time( $sync_fcuids{$a}{'datetime'} ) <=> str2time( $sync_fcuids{$b}{'datetime'} ) } ( $lc->get_Lonly ) );
+
+        foreach my $fcuid (@fc_fcuid_append) {
+            print print_timestamp() . " : Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . "\n";
+            $dates{ $sync_fcuids{$fcuid}{'date'} }{'migrate'} = 1;
+            $sync_fcuids{$fcuid}{'action'} = "append";
+        }
+
+        my @fc_fcuid_update = sort( { str2time( $sync_fcuids{$a}{'datetime'} ) <=> str2time( $sync_fcuids{$b}{'datetime'} ) } ( $lc->get_intersection ) );
+
+        foreach my $fcuid (@fc_fcuid_update) {
+            if ($force_update_all_email) {
                 print print_timestamp() . " : Force Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . "\n";
                 $dates{ $sync_fcuids{$fcuid}{'date'} }{'migrate'} = 1;
                 $sync_fcuids{$fcuid}{'action'} = "update";
             }
-        }
-        else {
-            my ($lc) = List::Compare->new( \@fc_fcuid, \@imap_fcuid );
-
-            if ($destination_email_deletion) {
-                my @fc_fcuid_delete = sort( { str2time( $imap_fcuid_msgid->{$a}->{'datetime'} ) <=> str2time( $imap_fcuid_msgid->{$b}->{'datetime'} ) } ( $lc->get_Ronly ) );
-
-                foreach my $fcuid (@fc_fcuid_delete) {
-                    print print_timestamp() . " : Delete from Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
-                    $sync_fcuids{$fcuid}{'datetime'} = $imap_fcuid_msgid->{$fcuid}->{'datetime'};
-                    $sync_fcuids{$fcuid}{'action'} = "delete";
-                }
-            }
-
-            my @fc_fcuid_append = sort( { str2time( $sync_fcuids{$a}{'datetime'} ) <=> str2time( $sync_fcuids{$b}{'datetime'} ) } ( $lc->get_Lonly ) );
-
-            foreach my $fcuid (@fc_fcuid_append) {
-                print print_timestamp() . " : Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . "\n";
-                $dates{ $sync_fcuids{$fcuid}{'date'} }{'migrate'} = 1;
-                $sync_fcuids{$fcuid}{'action'} = "append";
-            }
-
-            my @fc_fcuid_update = sort( { str2time( $sync_fcuids{$a}{'datetime'} ) <=> str2time( $sync_fcuids{$b}{'datetime'} ) } ( $lc->get_intersection ) );
-
-            foreach my $fcuid (@fc_fcuid_update) {
+            else {
                 if ( str2time( $sync_fcuids{$fcuid}{'datetime'} ) > str2time( $imap_fcuid_msgid->{$fcuid}->{'datetime'} ) ) {
                     print print_timestamp() . " : Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} .
-                      "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+                        "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
                     $dates{ $sync_fcuids{$fcuid}{'date'} }{'migrate'} = 1;
                     $sync_fcuids{$fcuid}{'action'} = "update";
                 }
             }
         }
-
-        my $startdate = "";
 
         foreach my $date ( sort( keys(%dates) ) ) {
             if ( $dates{$date}{'migrate'} ) {
