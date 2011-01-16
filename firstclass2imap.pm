@@ -302,7 +302,8 @@ sub migrate_folders {
 
             my $mgr = Mail::Box::Manager->new;
             my $pop_mailbox = $mgr->open( type => 'pop3', username => $migrate_user, password => $migrate_password, server_name => $fromhost );
-            foreach my $msg ( $pop_mailbox->messages ) {
+            foreach my $msgid ( $pop_mailbox->messageIds ) {
+                my $msg = $pop_mailbox->find($msgid);
                 $msg->delete;
                 print ".";
             }
@@ -353,12 +354,20 @@ sub migrate_folders {
 
         $imap->select($imap_folder);
 
-        my $hash_ref = $imap->fetch_hash("BODY[HEADER.FIELDS (FC-UNIQUE-ID)]");
+        my @uids = ();
+        my @fetch_response = $imap->fetch( '1:*', 'flags' );
 
+        foreach my $line (@fetch_response) {
+            if ( $line =~ /UID\s+(\d+)/i ) {
+                push( @uids, $1 );
+            }
+        }
+        
         my @imap_fcuids = ();
-        foreach my $uid ( keys(%$hash_ref) ) {
-            if ( $hash_ref->{$uid}->{"BODY[HEADER.FIELDS (FC-UNIQUE-ID)]"} =~ /FC-UNIQUE-ID:\s*(.*?)\s*$/ ) {
-                push( @imap_fcuids, $1 );
+        
+        foreach my $uid ( @uids ) {
+            if ( $imap->get_header($uid, "FC-UNIQUE-ID") ) {
+                push( @imap_fcuids, $imap->get_header($uid, "FC-UNIQUE-ID") );
                 $imap_folder_total_fcuids++;
             }
         }
@@ -455,9 +464,11 @@ sub dir_imap_sync {
     my $imap_mailbox = $mgr->open( type => 'imap', imap_client => $imap, folder => $imap_folder, access => 'rw' );
 
     my (%pop_fcuids_msgids_hash);
-    foreach my $msg ( $pop_mailbox->messages ) {
+    foreach my $msgid ( $pop_mailbox->messageIds ) {
+        my $msg = $pop_mailbox->find($msgid);
+
         if ( $msg->get('FC-UNIQUE-ID') ) {
-            $pop_fcuids_msgids_hash{ $msg->get('FC-UNIQUE-ID') }{'msgid'} = $msg->messageId;
+            $pop_fcuids_msgids_hash{ $msg->get('FC-UNIQUE-ID') }{'msgid'} = $msgid;
             $pop_fcuids_msgids_hash{ $msg->get('FC-UNIQUE-ID') }{'date'} = $msg->get('Date');
         }
     }
@@ -465,18 +476,23 @@ sub dir_imap_sync {
     # it is important that email is sorted in ascending datetime order because some email systems expect email to be added in chronological order for email to be
     # grouped into conversations or threads
     foreach my $fcuid ( sort { str2time( $sync_fcuids->{$a}->{'datetime'} ) <=> str2time( $sync_fcuids->{$b}->{'datetime'} ) } ( keys(%$sync_fcuids) ) ) {
+        my $fcuid_msgid = '<fc.' . $fcuid . '.0@dcsdk12.org>';
+        $fcuid_msgid =~ s/[:\-\|]//g;
 
         if ( $sync_fcuids->{$fcuid}->{'action'} eq "delete" ) {
             print print_timestamp() . " : IMAP Deleting from Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\n";
 
             if ($dry_run) { next; }
 
-            foreach my $msg ( $imap_mailbox->messages ) {
-                if ( $msg->messageId eq $imap_fcuid_msgid->{$fcuid}->{'msgid'} ) {
-                    $msg->delete;
-                    $imap_folder_delete++;
-                    print print_timestamp() . " : IMAP Deleted from Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\n";
-                }
+            # there seems to be a bug in the Mail::Box IMAP implementation of the "find" function so here we use the lower level Mail::IMAPClient "search" function instead
+            # further research indicates that the maintainer of the Mail::Box code recognizes that the IMAP implementation may have bugs
+            my @msgs = $imap->search("HEADER FC-UNIQUE-ID $fcuid");
+            if ( @msgs ) {
+                print print_timestamp() . " : IMAP Found email with FC-UNIQUE-ID: $fcuid\n";
+                my $delete_count = $imap->delete_message(@msgs);
+                $imap->expunge();
+                $imap_folder_delete += $delete_count;
+                print print_timestamp() . " : IMAP Deleted from Folder: \"$imap_folder\" \t $delete_count email with FC-UNIQUE-ID: $fcuid\n";
             }
         }
         if ( $sync_fcuids->{$fcuid}->{'action'} eq "append" ) {
@@ -485,7 +501,13 @@ sub dir_imap_sync {
             if ($dry_run) { next; }
 
             if ( defined( $pop_fcuids_msgids_hash{$fcuid} ) && $pop_mailbox->find( $pop_fcuids_msgids_hash{$fcuid}{"msgid"} ) ) {
-                my $pop_msg = $pop_mailbox->find( $pop_fcuids_msgids_hash{$fcuid}{"msgid"} )->string;
+                my $pop_msg = $pop_mailbox->find( $pop_fcuids_msgids_hash{$fcuid}{"msgid"} );
+
+                my $pop_head = $pop_msg->head();
+                my $pop_field_msgid = $pop_head->get('Message-ID');
+                $pop_field_msgid->unfoldedBody( $fcuid_msgid );
+
+                my $pop_msg_string = $pop_msg->string;
 
                 # First Class's POP3 implementation truncates the name of any email attachment if the attachment's name length exceeds 31 characters
                 # the following 'if' block makes sure that all email attachments are properly named
@@ -497,7 +519,7 @@ sub dir_imap_sync {
                     # the following code makes sure the best available mime type is chosen
                     my ( $mediatype, $encoding ) = MIME::Types::by_suffix($attachment_name);
                     if ( $mediatype eq "" ) {
-                        if ( ( $pop_msg =~ /Content-Type:\s*(\S*)\s*name="$attachment_number"/ ) && ( $1 ne "" ) ) {
+                        if ( ( $pop_msg_string =~ /Content-Type:\s*(\S*)\s*name="$attachment_number"/ ) && ( $1 ne "" ) ) {
                             $mediatype = $1;
                         }
                         else {
@@ -509,8 +531,8 @@ sub dir_imap_sync {
                     # put the appropriate icon next to the attachment so we substitute "msword" for "x-msword"
                     $mediatype =~ s/\/x-msword$/\/msword/g;
 
-                    if ( $pop_msg =~ s/Content-Type:\s*(\S*)\s*name="$attachment_number"(.*)/Content-Type: $mediatype; "$attachment_name"$2/g ) {
-                        $pop_msg =~ s/(Content-Disposition:.*filename=")$attachment_number"/$1$attachment_name"/g;
+                    if ( $pop_msg_string =~ s/Content-Type:\s*(\S*)\s*name="$attachment_number"(.*)/Content-Type: $mediatype; "$attachment_name"$2/g ) {
+                        $pop_msg_string =~ s/(Content-Disposition:.*filename=")$attachment_number"/$1$attachment_name"/g;
                     }
                 }
 
@@ -518,7 +540,7 @@ sub dir_imap_sync {
                 $datetime->parse( $sync_fcuids->{$fcuid}->{'datetime'} );
                 $datetime->convert('GMT');
 
-                if ( $imap->append_string( "$imap_folder", $pop_msg, '\Seen', $datetime->printf('%d-%b-%Y %T %z') ) ) {
+                if ( $imap->append_string( "$imap_folder", $pop_msg_string, '\Seen', $datetime->printf('%d-%b-%Y %T %z') ) ) {
 
                     $imap_folder_append++;
                     print print_timestamp() . " : IMAP Appended to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\n";
@@ -534,15 +556,22 @@ sub dir_imap_sync {
             if ($dry_run) { next; }
 
             if ( defined( $pop_fcuids_msgids_hash{$fcuid} ) && $pop_mailbox->find( $pop_fcuids_msgids_hash{$fcuid}{"msgid"} ) ) {
-                if ( defined( $imap_fcuid_msgid->{$fcuid}->{"msgid"} ) ) {
-                    foreach my $msg ( $imap_mailbox->messages ) {
-                        if ( $msg->messageId eq $imap_fcuid_msgid->{$fcuid}->{"msgid"} ) {
-                            $msg->delete;
-                            last;
-                        }
-                    }
+                # there seems to be a bug in the Mail::Box IMAP implementation of the "find" function so here we use the lower level Mail::IMAPClient "search" function instead
+                # further research indicates that the maintainer of the Mail::Box code recognizes that the IMAP implementation may have bugs
+                my @msgs = $imap->search("HEADER FC-UNIQUE-ID $fcuid");
+                if ( @msgs ) {
+                    print print_timestamp() . " : IMAP Found email with FC-UNIQUE-ID: $fcuid\n";
+                    my $delete_count = $imap->delete_message(@msgs);
+                    $imap->expunge();
+                    print print_timestamp() . " : IMAP Deleted from Folder: \"$imap_folder\" \t $delete_count email with FC-UNIQUE-ID: $fcuid\n";
                 }
-                my $pop_msg = $pop_mailbox->find( $pop_fcuids_msgids_hash{$fcuid}{"msgid"} )->string;
+                my $pop_msg = $pop_mailbox->find( $pop_fcuids_msgids_hash{$fcuid}{"msgid"} );
+
+                my $pop_head = $pop_msg->head();
+                my $pop_field_msgid = $pop_head->get('Message-ID');
+                $pop_field_msgid->unfoldedBody( $fcuid_msgid );
+
+                my $pop_msg_string = $pop_msg->string;
 
                 # First Class's POP3 implementation truncates the name of any email attachment if the attachment's name length exceeds 31 characters
                 # the following 'if' block makes sure that all email attachments are properly named
@@ -554,7 +583,7 @@ sub dir_imap_sync {
                     # the following code makes sure the best available mime type is chosen
                     my ( $mediatype, $encoding ) = MIME::Types::by_suffix($attachment_name);
                     if ( $mediatype eq "" ) {
-                        if ( ( $pop_msg =~ /Content-Type:\s*(\S*)\s*name="$attachment_number"/ ) && ( $1 ne "" ) ) {
+                        if ( ( $pop_msg_string =~ /Content-Type:\s*(\S*)\s*name="$attachment_number"/ ) && ( $1 ne "" ) ) {
                             $mediatype = $1;
                         }
                         else {
@@ -566,8 +595,8 @@ sub dir_imap_sync {
                     # put the appropriate icon next to the attachment so we substitute "msword" for "x-msword"
                     $mediatype =~ s/\/x-msword$/\/msword/g;
 
-                    if ( $pop_msg =~ s/Content-Type:\s*(\S*)\s*name="$attachment_number"(.*)/Content-Type: $mediatype; "$attachment_name"$2/g ) {
-                        $pop_msg =~ s/(Content-Disposition:.*filename=")$attachment_number"/$1$attachment_name"/g;
+                    if ( $pop_msg_string =~ s/Content-Type:\s*(\S*)\s*name="$attachment_number"(.*)/Content-Type: $mediatype; "$attachment_name"$2/g ) {
+                        $pop_msg_string =~ s/(Content-Disposition:.*filename=")$attachment_number"/$1$attachment_name"/g;
                     }
                 }
 
@@ -575,7 +604,7 @@ sub dir_imap_sync {
                 $datetime->parse( $sync_fcuids->{$fcuid}->{'datetime'} );
                 $datetime->convert('GMT');
 
-                if ( $imap->append_string( "$imap_folder", $pop_msg, '\Seen', $datetime->printf('%d-%b-%Y %T %z') ) ) {
+                if ( $imap->append_string( "$imap_folder", $pop_msg_string, '\Seen', $datetime->printf('%d-%b-%Y %T %z') ) ) {
 
                     $imap_folder_update++;
                     print print_timestamp() . " : IMAP Updated in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
@@ -587,7 +616,10 @@ sub dir_imap_sync {
         }
     }
     $pop_mailbox->close;
-    $imap_mailbox->close;
+# this is commented out because when explicitly called it frequently throws a fatal error
+# but when implicitly called during cleanup the error does not crash the script
+# the error was noticed especially when force_update was enabled
+#    $imap_mailbox->close;
 
     return ( $imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update );
 }
@@ -1287,14 +1319,22 @@ sub get_imap_fcuid_msgid_hash {
 
     $imap->select($imap_folder);
 
-    my $hash_ref = $imap->fetch_hash('INTERNALDATE');
+    my @uids = ();
+    my @fetch_response = $imap->fetch( '1:*', 'flags' );
 
-    foreach my $uid ( keys(%$hash_ref) ) {
-        if ( $imap->get_header( $uid, "FC-UNIQUE-ID" ) ) {
-            $imap_fcuid_msgid_hash{ $imap->get_header( $uid, "FC-UNIQUE-ID" ) }{'msgid'} = $imap->get_header( $uid, "Message-Id" );
-            $imap_fcuid_msgid_hash{ $imap->get_header( $uid, "FC-UNIQUE-ID" ) }{'msgid'} =~ s/\<|\>//g;
+    foreach my $line (@fetch_response) {
+        if ( $line =~ /UID\s+(\d+)/i ) {
+            push( @uids, $1 );
+        }
+    }
+        
+    foreach my $uid ( @uids ) {
+        my $fcuid = $imap->get_header( $uid, "FC-UNIQUE-ID" );
+        if ( $fcuid ) {
+            $imap_fcuid_msgid_hash{ $fcuid }{'msgid'} = $imap->get_header( $uid, "Message-ID" );
+            $imap_fcuid_msgid_hash{ $fcuid }{'msgid'} =~ s/\<|\>//g;
 
-            $imap_fcuid_msgid_hash{ $imap->get_header( $uid, "FC-UNIQUE-ID" ) }{'datetime'} = $hash_ref->{$uid}->{'INTERNALDATE'};
+            $imap_fcuid_msgid_hash{ $fcuid }{'datetime'} = $imap->internaldate($uid);
         }
     }
     $imap->logout;
