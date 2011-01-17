@@ -130,8 +130,8 @@ while () {
     system("rm -rf $rcvdDir");
     system("rm -rf $sentDir");
 
-    $sth = $dbh->prepare("UPDATE usermap SET time_migrated = NOW(), migrating = ?, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
-    if ( $sth->execute( "$fromhost:$instance", $migrated, $fromuser, $touser, $fromfolder ) ) {
+    $sth = $dbh->prepare("UPDATE usermap SET time_migrated = NOW(), migrating = ?, status = ?, migrated = ? WHERE fromuser = ? AND touser = ? AND fromfolder = ? LIMIT 1");
+    if ( $sth->execute( "$fromhost:$instance", '', $migrated, $fromuser, $touser, $fromfolder ) ) {
         $sth->finish;
         my ( $migrated_folder_structure, $migrated_folders, $fc_folder_count, $destination_folder_count, $dir_account_total_fcuids, $imap_account_total_fcuids ) = ( 0, 0, 0, 0, 0, 0 );
         my ( $missed_folders_count, $missed_fcuids_count ) = ( 0, 0 );
