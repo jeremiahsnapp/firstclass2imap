@@ -457,11 +457,10 @@ sub dir_imap_sync {
     my ( $imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update ) = ( 0, 0, 0, 0 );
 
     my $imap = create_imap_client( $tohost, $touser, $topassword );
+    $imap->select($imap_folder);
+
     my $mgr = Mail::Box::Manager->new;
-
     my $pop_mailbox = $mgr->open( type => 'pop3', username => $migrate_user, password => $migrate_password, server_name => $fromhost );
-
-    my $imap_mailbox = $mgr->open( type => 'imap', imap_client => $imap, folder => $imap_folder, access => 'rw' );
 
     my (%pop_fcuids_msgids_hash);
     foreach my $msgid ( $pop_mailbox->messageIds ) {
@@ -484,8 +483,6 @@ sub dir_imap_sync {
 
             if ($dry_run) { next; }
 
-            # there seems to be a bug in the Mail::Box IMAP implementation of the "find" function so here we use the lower level Mail::IMAPClient "search" function instead
-            # further research indicates that the maintainer of the Mail::Box code recognizes that the IMAP implementation may have bugs
             my @msgs = $imap->search("HEADER FC-UNIQUE-ID $fcuid");
             if ( @msgs ) {
                 print print_timestamp() . " : IMAP Found email with FC-UNIQUE-ID: $fcuid\n";
@@ -556,8 +553,6 @@ sub dir_imap_sync {
             if ($dry_run) { next; }
 
             if ( defined( $pop_fcuids_msgids_hash{$fcuid} ) && $pop_mailbox->find( $pop_fcuids_msgids_hash{$fcuid}{"msgid"} ) ) {
-                # there seems to be a bug in the Mail::Box IMAP implementation of the "find" function so here we use the lower level Mail::IMAPClient "search" function instead
-                # further research indicates that the maintainer of the Mail::Box code recognizes that the IMAP implementation may have bugs
                 my @msgs = $imap->search("HEADER FC-UNIQUE-ID $fcuid");
                 if ( @msgs ) {
                     print print_timestamp() . " : IMAP Found email with FC-UNIQUE-ID: $fcuid\n";
@@ -616,10 +611,6 @@ sub dir_imap_sync {
         }
     }
     $pop_mailbox->close;
-# this is commented out because when explicitly called it frequently throws a fatal error
-# but when implicitly called during cleanup the error does not crash the script
-# the error was noticed especially when force_update was enabled
-#    $imap_mailbox->close;
 
     return ( $imap_folder_skip, $imap_folder_append, $imap_folder_delete, $imap_folder_update );
 }
