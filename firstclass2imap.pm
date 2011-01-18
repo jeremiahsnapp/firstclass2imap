@@ -21,6 +21,7 @@ use Date::Parse;
 use Date::Manip;
 
 my $dry_run                     = 0;
+my $destination_sync            = 1;
 my $destination_folder_deletion = 0;
 my $destination_email_deletion  = 0;
 my $debug_imap                  = 0;
@@ -50,6 +51,7 @@ sub initialize {
     $yaml = YAML::Tiny->read('migration.cfg');
 
     $dry_run                     = $yaml->[0]->{dry_run};
+    $destination_sync            = $yaml->[0]->{destination_sync};
     $destination_folder_deletion = $yaml->[0]->{destination_folder_deletion};
     $destination_email_deletion  = $yaml->[0]->{destination_email_deletion};
     $debug_imap                  = $yaml->[0]->{debug_imap};
@@ -270,7 +272,13 @@ sub migrate_folders {
 
         # create a list @imap_fcuid_list of FC-UNIQUE-ID's and Message-ID's for
         # each message in user's destination IMAP folder
-        my $imap_fcuid_msgid = get_imap_fcuid_msgid_hash( $tohost, $touser, $topassword, $imap_folder );
+        my $imap_fcuid_msgid;
+        if ( $destination_sync ) {
+            $imap_fcuid_msgid = get_imap_fcuid_msgid_hash( $tohost, $touser, $topassword, $imap_folder );
+        }
+        else {
+            %$imap_fcuid_msgid = {};
+        }
 
         my ( $successful, $export_filter_date_ranges, $days_skipped, $folder_total_size, $folder_total_size_to_be_migrated, $sync_fcuids ) =
           get_export_filter_date_ranges( $max_export_script_size, $fromuser, $fc_folder, $tohost, $touser, $topassword, $imap_folder, $imap_fcuid_msgid, $force_update_all_email );
@@ -350,49 +358,54 @@ sub migrate_folders {
             }
         }
 
-        my $imap = create_imap_client( $tohost, $touser, $topassword );
+        if ( $destination_sync ) {
+            my $imap = create_imap_client( $tohost, $touser, $topassword );
 
-        $imap->select($imap_folder);
+            $imap->select($imap_folder);
 
-        my @uids = ();
-        my @fetch_response = $imap->fetch( '1:*', 'flags' );
+            my @uids = ();
+            my @fetch_response = $imap->fetch( '1:*', 'flags' );
 
-        foreach my $line (@fetch_response) {
-            if ( $line =~ /UID\s+(\d+)/i ) {
-                push( @uids, $1 );
+            foreach my $line (@fetch_response) {
+                if ( $line =~ /UID\s+(\d+)/i ) {
+                    push( @uids, $1 );
+                }
             }
-        }
-        
-        my @imap_fcuids = ();
-        
-        foreach my $uid ( @uids ) {
-            if ( $imap->get_header($uid, "FC-UNIQUE-ID") ) {
-                push( @imap_fcuids, $imap->get_header($uid, "FC-UNIQUE-ID") );
-                $imap_folder_total_fcuids++;
+            
+            my @imap_fcuids = ();
+            
+            foreach my $uid ( @uids ) {
+                if ( $imap->get_header($uid, "FC-UNIQUE-ID") ) {
+                    push( @imap_fcuids, $imap->get_header($uid, "FC-UNIQUE-ID") );
+                    $imap_folder_total_fcuids++;
+                }
             }
-        }
-        $imap->logout;
+            $imap->logout;
 
-        my ($lc) = List::Compare->new( \@dir_fcuids, \@imap_fcuids );
-        $folder_missed_fcuids_count = $lc->get_Lonly;
+            my ($lc) = List::Compare->new( \@dir_fcuids, \@imap_fcuids );
+            $folder_missed_fcuids_count = $lc->get_Lonly;
 
-        my @folder_missed_fcuids = ();
-        foreach my $fcuid ( $lc->get_Lonly ) {
-            if ( $sync_fcuids->{$fcuid}->{'datetime'} ne "" ) {
+            my @folder_missed_fcuids = ();
+            foreach my $fcuid ( $lc->get_Lonly ) {
+                if ( $sync_fcuids->{$fcuid}->{'datetime'} ne "" ) {
 
-                # chat transcripts in First Class are handled strangely by batch admin commands which causes the migration process to
-                # expect them to be migrated but the actual migration is impossible
-                # batch admin dir command lists a chat transcript as a leaf item but in the dir command's summary it seems that it might be seeing it as a folder
-                # batch admin export command does not include chat transcripts at all for some reason which is why it is impossible for them to be migrated
-                # the following line of code allows the migration report to ignore the chat transcripts so we can report 100% successful migration
-                # this is done here because the only way to test for a chat transcript is to see if it's subject line matches "Private Chat transcript"
-                # since other legitimate items might have that subject line I decided to attempt the migration first and then ignore any unsuccessfully migrated items with "Private Chat transcript" as the subject line
-                if ( $sync_fcuids->{$fcuid}->{'subject'} eq "Private Chat transcript" ) { next; }
+                    # chat transcripts in First Class are handled strangely by batch admin commands which causes the migration process to
+                    # expect them to be migrated but the actual migration is impossible
+                    # batch admin dir command lists a chat transcript as a leaf item but in the dir command's summary it seems that it might be seeing it as a folder
+                    # batch admin export command does not include chat transcripts at all for some reason which is why it is impossible for them to be migrated
+                    # the following line of code allows the migration report to ignore the chat transcripts so we can report 100% successful migration
+                    # this is done here because the only way to test for a chat transcript is to see if it's subject line matches "Private Chat transcript"
+                    # since other legitimate items might have that subject line I decided to attempt the migration first and then ignore any unsuccessfully migrated items with "Private Chat transcript" as the subject line
+                    if ( $sync_fcuids->{$fcuid}->{'subject'} eq "Private Chat transcript" ) { next; }
 
-                push( @folder_missed_fcuids, $sync_fcuids->{$fcuid} );
+                    push( @folder_missed_fcuids, $sync_fcuids->{$fcuid} );
+                }
             }
+            if (@folder_missed_fcuids) { $missed_fcuids{$fc_folder} = \@folder_missed_fcuids; }
         }
-        if (@folder_missed_fcuids) { $missed_fcuids{$fc_folder} = \@folder_missed_fcuids; }
+        else {
+            $imap_folder_total_fcuids = $imap_folder_append;
+        }
 
         $account_missed_fcuids_count += $folder_missed_fcuids_count;
         $dir_account_skip            += $dir_folder_skip;
@@ -1139,9 +1152,16 @@ sub get_export_filter_date_ranges {
         my @fc_fcuid_append = sort( { str2time( $sync_fcuids{$a}{'datetime'} ) <=> str2time( $sync_fcuids{$b}{'datetime'} ) } ( $lc->get_Lonly ) );
 
         foreach my $fcuid (@fc_fcuid_append) {
-            print print_timestamp() . " : Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . "\n";
-            $dates{ $sync_fcuids{$fcuid}{'date'} }{'migrate'} = 1;
-            $sync_fcuids{$fcuid}{'action'} = "append";
+            if ( ! $destination_sync && $force_update_all_email ) {
+                print print_timestamp() . " : Force Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . "\n";
+                $dates{ $sync_fcuids{$fcuid}{'date'} }{'migrate'} = 1;
+                $sync_fcuids{$fcuid}{'action'} = "update";
+            }
+            else {
+                print print_timestamp() . " : Append to Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids{$fcuid}{'datetime'} . "\n";
+                $dates{ $sync_fcuids{$fcuid}{'date'} }{'migrate'} = 1;
+                $sync_fcuids{$fcuid}{'action'} = "append";
+            }
         }
 
         my @fc_fcuid_update = sort( { str2time( $sync_fcuids{$a}{'datetime'} ) <=> str2time( $sync_fcuids{$b}{'datetime'} ) } ( $lc->get_intersection ) );
