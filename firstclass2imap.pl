@@ -22,6 +22,9 @@ if ( @ARGV < 1 ) {
 my $instance = shift(@ARGV);
 my $fc_user  = shift(@ARGV);
 
+my $from_date_string = '';
+my $to_date_string   = '';
+
 # Create a YAML file
 my $yaml = YAML::Tiny->new;
 
@@ -38,7 +41,7 @@ my $dbhost     = $yaml->[0]->{dbhost};
 my $dbuser     = $yaml->[0]->{dbuser};
 my $dbpassword = $yaml->[0]->{dbpassword};
 
-firstclass2imap::initialize($instance);
+firstclass2imap::initialize($instance, $from_date_string, $to_date_string);
 
 # PERL Database CONNECT
 my ($dbh) = DBI->connect( "DBI:mysql:$dbname:$dbhost", $dbuser, $dbpassword ) or die "Couldn't connect to database: " . DBI->errstr;

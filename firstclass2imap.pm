@@ -20,6 +20,8 @@ use List::Compare;
 use Date::Parse;
 use Date::Manip;
 
+my $from_date_string            = '';
+my $to_date_string              = '';
 my $dry_run                     = 0;
 my $destination_sync            = 1;
 my $destination_folder_deletion = 0;
@@ -42,7 +44,7 @@ my $tohost                      = 'imap.gmail.com';
 my $fc_timezone                 = 'EST';
 
 sub initialize {
-    my ($instance) = @_;
+    my ($instance, $local_from_date_string, $local_to_date_string) = @_;
 
     # Create a YAML file
     my $yaml = YAML::Tiny->new;
@@ -50,6 +52,8 @@ sub initialize {
     # Open the config
     $yaml = YAML::Tiny->read('migration.cfg');
 
+    $from_date_string            = $local_from_date_string;
+    $to_date_string              = $local_to_date_string;
     $dry_run                     = $yaml->[0]->{dry_run};
     $destination_sync            = $yaml->[0]->{destination_sync};
     $destination_folder_deletion = $yaml->[0]->{destination_folder_deletion};
@@ -1094,6 +1098,8 @@ sub get_export_filter_date_ranges {
                 my $item_size    = $5;
                 my $fcuid        = $6;
 
+                if ( !within_date_range($item_date, $from_date_string, $to_date_string) ) { next; }
+
                 my $datetime;
 
                 {
@@ -1335,7 +1341,10 @@ sub get_imap_fcuid_msgid_hash {
 
     foreach my $line (@fetch_response) {
         if ( $line =~ /UID\s+(\d+)/i ) {
-            push( @uids, $1 );
+            my $uid = $1;
+            if ( within_date_range( $imap->internaldate($uid), $from_date_string, $to_date_string ) ) {
+                push( @uids, $uid );
+            }
         }
     }
         
@@ -1438,6 +1447,45 @@ sub email_user_notification {
     my $sender = Email::Send->new( { mailer => 'SMTP' } );
 
     $sender->send($content);
+}
+
+sub within_date_range {
+    my ( $test_date_string, $from_date_string, $to_date_string ) = @_;
+
+    my $test_date, $from_date, $to_date;
+
+    {
+        # locally set the timezone for Date::Manip::Date object to the FirstClass server's timezone
+        # by locally setting the environment's timezone instead of explicitly setting the
+        # timezone in the parse function we allow the parse function to correctly determine
+        # if the timezone needs to be daylight savings timezone or not
+        local $ENV{TZ} = $fc_timezone;
+        $test_date     = new Date::Manip::Date;
+        $from_date     = new Date::Manip::Date;
+        $to_date       = new Date::Manip::Date;
+    }
+
+    if ( $test_date->parse( $test_date_string ) ) {
+        print "$test_date_string is not a valid date string.\n";
+        return 0;
+    }
+    if ( ($from_date_string ne '') && $from_date->parse( $from_date_string ) ) {
+        print "$from_date_string is not a valid date string.\n";
+        return 0;
+    }
+    if ( ($to_date_string ne '') && $to_date->parse( $to_date_string ) ) {
+        print "$to_date_string is not a valid date string.\n";
+        return 0;
+    }
+
+    if ($from_date_string ne '') {
+        if ( $test_date->secs_since_1970_GMT() < $from_date->secs_since_1970_GMT() ) { return 0; }
+    }
+    if ($to_date_string ne '') {
+        if ( $test_date->secs_since_1970_GMT() >= $to_date->secs_since_1970_GMT() ) { return 0; }
+    }
+
+    return 1;
 }
 
 sub elapsed_time {
