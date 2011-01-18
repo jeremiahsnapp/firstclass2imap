@@ -1452,7 +1452,7 @@ sub email_user_notification {
 sub within_date_range {
     my ( $test_date_string, $from_date_string, $to_date_string ) = @_;
 
-    my $test_date, $from_date, $to_date;
+    my ($test_date, $from_date, $to_date);
 
     {
         # locally set the timezone for Date::Manip::Date object to the FirstClass server's timezone
