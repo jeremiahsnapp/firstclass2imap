@@ -276,12 +276,9 @@ sub migrate_folders {
 
         # create a list @imap_fcuid_list of FC-UNIQUE-ID's and Message-ID's for
         # each message in user's destination IMAP folder
-        my $imap_fcuid_msgid;
+        my $imap_fcuid_msgid = {};
         if ( $destination_sync ) {
             $imap_fcuid_msgid = get_imap_fcuid_msgid_hash( $tohost, $touser, $topassword, $imap_folder );
-        }
-        else {
-            %$imap_fcuid_msgid = {};
         }
 
         my ( $successful, $export_filter_date_ranges, $days_skipped, $folder_total_size, $folder_total_size_to_be_migrated, $sync_fcuids ) =
@@ -565,7 +562,9 @@ sub dir_imap_sync {
             }
         }
         if ( $sync_fcuids->{$fcuid}->{'action'} eq "update" ) {
-            print print_timestamp() . " : IMAP Updating in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+            my $imap_fcuid_datetime = defined( $imap_fcuid_msgid->{$fcuid}->{'datetime'} ) ? $imap_fcuid_msgid->{$fcuid}->{'datetime'} : '';
+
+            print print_timestamp() . " : IMAP Updating in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_datetime . "\n";
 
             if ($dry_run) { next; }
 
@@ -619,10 +618,10 @@ sub dir_imap_sync {
                 if ( $imap->append_string( "$imap_folder", $pop_msg_string, '\Seen', $datetime->printf('%d-%b-%Y %T %z') ) ) {
 
                     $imap_folder_update++;
-                    print print_timestamp() . " : IMAP Updated in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+                    print print_timestamp() . " : IMAP Updated in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_datetime . "\n";
                 }
                 else {
-                    print print_timestamp() . " : IMAP Failed to Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_msgid->{$fcuid}->{'datetime'} . "\n";
+                    print print_timestamp() . " : IMAP Failed to Update in Folder: \"$imap_folder\" \t Email: " . $fcuid . "\t" . $sync_fcuids->{$fcuid}->{'datetime'} . "\t" . $imap_fcuid_datetime . "\n";
                 }
             }
         }
