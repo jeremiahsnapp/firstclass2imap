@@ -176,14 +176,14 @@ EOF
 
 # create a .muttrc file for the migrate user
 
-cat <<EOF /home/migrate/.muttrc
+cat <<EOF > /home/migrate/.muttrc
 # reference: http://wiki.mutt.org/?MuttFaq/Maildir
-/home/migrate/.muttrc
+
 set read_only
 set mail_check = 10
 
 set realname =
-set from = "migrate@schoolname.edu"
+set from = "migrate@[127.0.0.1]"
 set use_from = yes
 set use_envelope_from = yes
 
@@ -191,18 +191,18 @@ set mbox_type=Maildir
 
 set spoolfile="/home/migrate/Maildir/"
 set folder="/home/migrate/Maildir"
-set mask="!^\\.[^.]"
+set mask="!^\\\\.[^.]"
 set record="+.Sent"
 set postponed="+.Drafts"
 
-mailboxes ! + `\
-for file in /home/migrate/Maildir/.*; do \
-   box=\$(basename "\$file"); \
-   if [ ! "\$box" = '.' -a ! "\$box" = '..' -a ! "\$box" = '.customflags' \
-       -a ! "\$box" = '.subscriptions' ]; then \
-     echo -n "\"+\$box\" "; \
-   fi; \
-done`
+mailboxes ! + \`\\
+for file in /home/migrate/Maildir/.*; do \\
+    box=\$(basename "\$file"); \\
+    if [ ! "\$box" = '.' -a ! "\$box" = '..' -a ! "\$box" = '.customflags' \\
+        -a ! "\$box" = '.subscriptions' ]; then \\
+        echo -n "\"+\$box\" "; \\
+    fi; \\
+done\`
 
 macro index c "<change-folder>?<toggle-mailboxes>" "open a different folder"
 macro pager c "<change-folder>?<toggle-mailboxes>" "open a different folder"
