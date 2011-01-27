@@ -19,11 +19,11 @@ my $rcvdDir                = "/home/migrate/Maildir/.switched_user_rcvd/";
 my $timeout                = 300;
 my $searchString           = "BA Migrate Script switched_user: ";
 my $max_export_script_size = 20000;
-my $migrate_email_address  = 'migrate@migrate.schoolname.edu';
+my $migrate_email_address  = 'migrate@[127.0.0.1]';
 my $fc_admin_email_address = 'administrator@schoolname.edu';
 my $domain                 = 'schoolname.edu';
 my $fromhost               = '192.168.1.24';
-my $migratehost            = '192.168.1.6';
+my $migratehost            = '127.0.0.1';
 
 sub initialize {
     # Create a YAML file
@@ -36,10 +36,8 @@ sub initialize {
     $timeout                = $yaml->[0]->{timeout};
     $searchString           = $yaml->[0]->{searchString} . " switched_user: ";
     $max_export_script_size = $yaml->[0]->{max_export_script_size};
-    $migrate_email_address  = $yaml->[0]->{migrate_email_address};
     $fc_admin_email_address = $yaml->[0]->{fc_admin_email_address};
     $fromhost               = $yaml->[0]->{fromhost};
-    $migratehost            = $yaml->[0]->{migratehost};
     $domain                 = $yaml->[0]->{domain};
 }
 

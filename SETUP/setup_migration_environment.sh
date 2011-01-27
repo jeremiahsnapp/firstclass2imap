@@ -82,7 +82,7 @@ DEFAULT=\$HOME/Maildir/
 MAILDIR=\$HOME/Maildir/
 
 :0
-* ^Return-Path: <migrate@migrate.schoolname.edu>
+* ^Return-Path: <migrate@.*>
 {
         :0
         * ^Subject:.*BA Migrate Script 1:
